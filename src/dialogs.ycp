@@ -431,7 +431,7 @@
             {
                 integer SrcID = (integer)UI::QueryWidget(`id(`table), `CurrentItem);
                 selected_items = filter(integer i, selected_items, ``(SrcID!=i ));
-                UI::ChangeWidget(`id(`table), `Item(SrcID, 0) , _(""));
+                UI::ChangeWidget(`id(`table), `Item(SrcID, 0) , "");
             }
             else if(ret == `next)
             {
