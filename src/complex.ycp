@@ -209,7 +209,17 @@
         if(CDCreator::Abort()) return `abort;
         Progress::NextStage();
         if (CDCreator::Config["pkgtype"]:"" == "autoyast")
+        {
             CDCreator::CopyMiscFiles();
+        } else {
+            if (CDCreator::Config["bootconfig"]:"" != "") 
+            {
+                y2debug("bootconfig available");
+                SCR::Write(.target.string, 
+                        sformat("%1/boot/loader/isolinux.cfg", CDCreator::skel_root), 
+                        CDCreator::Config["bootconfig"]:"" );
+            }
+        }
 
         Progress::NextStage();
         if (!CDCreator::CopyPackages(id))
