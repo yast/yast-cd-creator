@@ -17,7 +17,7 @@ textdomain "cd-creator";
 global map HELPS = $[
 
     /* Read dialog help 1/2 */
-    "read" : _("<p><b><big>Initializing cd-creator Configuration</big></b><br>
+    "read" : _("<p><b><big>Initializing Configuration</big></b><br>
 Please wait...<br></p>
 ") +
 
@@ -27,7 +27,7 @@ Safely abort the configuration utility by pressing <b>Abort</b> now.</p>
 "),
 
     /* Write dialog help 1/2 */
-    "write" : _("<p><b><big>Saving cd-creator Configuration</big></b><br>
+    "write" : _("<p><b><big>Saving Configuration</big></b><br>
 Please wait...<br></p>
 ") +
 
@@ -38,59 +38,63 @@ An additional dialog informs whether it is safe to do so.
 </p>
 "),
 
-    /* Summary dialog help 1/3 */
-    "summary" : _("<p><b><big>CDCreator Configuration</big></b><br>
-Configure cd-creator here.<br></p>
-") +
-
-    /* Summary dialog help 2/3 */
-    _("<p><b><big>Adding a cd-creator:</big></b><br>
-Choose cd-creator from the list of detected cd-creators.
-If your cd-creator was not autodetected, use <b>Other (not detected)</b>.
-Then press <b>Configure</b>.</p>
-") +
-
-    /* Summary dialog help 3/3 */
-    _("<p><b><big>Editing or Deleting:</big></b><br>
-If you press <b>Edit</b>, an additional dialog in which to change
-the configuration opens.</p>
-"),
 
     /* Ovreview dialog help 1/3 */
-    "overview" : _("<p><b><big>CDCreator Configuration Overview</big></b><br>
-Obtain an overview of installed cd-creators. Additionally
-edit their configuration.<br></p>
+    "overview" : _("<p><b><big>CD Creator Configuration Overview</big></b><br>
+Obtain an overview of available configurations. Additionally
+edit those configuration.<br></p>
 ") +
 
     /* Ovreview dialog help 2/3 */
-_("<p><b><big>Adding a cd-creator:</big></b><br>
-Press <b>Add</b> to configure a cd-creator.</p>") +
+_("<p><b><big>Adding a Configuration:</big></b><br>
+Press <b>Add</b> to create a new configuration.</p>") +
 
     /* Ovreview dialog help 3/3 */
 _("<p><b><big>Editing or Deleting:</big></b><br>
-Choose a cd-creator to change or remove.
+Choose a configuration to change or remove.
 Then press <b>Edit</b> or <b>Delete</b> as desired.</p>
 "),
 
-    /* Configure1 dialog help 1/2 */
-    "c1" : _("<p><b><big>Configure, part one</big></b><br>
-Please press the <b>Next</b> button.
-<br></p>") +
+    /* Configure1 dialog help 1/4 */
+    "initial" : _("<p><b><big>Configuration Name and Packages</big></b><br>
+Choose a configuration name and the method how you wish to select 
+the packages to be added to the ISO image.<br></p>") +
 
-    /* Configure1 dialog help 2/2 */
-_("<p><b><big>Selecting something:</big></b><br>
-It is not possible, you must code it first :-)
+    /* Configure1 dialog help 2/4 */
+_("<b>Plain Package List</b><p>
+Select a file with a package list you wish to use. The list should only contain
+the names of the packages. One package per line.
+</p>") +
+    /* Configure1 dialog help 3/4 */
+_("<b>AutoYaST Profile</b><p>
+Select an AutoYaST Profile with the a software configuration.
+</p>") +
+    /* Configure1 dialog help 3/4 */
+_("<b>Package Manager</b><p>
+Use the package manager without any pre-selected packages.
 </p>"),
 
     /* Configure2 dialog help 1/2 */
-    "c2" : _("<p><b><big>Configuration Part Two</big></b><br>
-Press <b>Next</b>.
+    "sourceDialog" : _("<p><b><big>Select Package Sources</big></b><br>
+Select at least one package source. The sources have to be local
+to the system. Network sources are not supported.<br></p>
+"),
+
+    /* Configure2 dialog help 1/2 */
+    "dest" : _("<p><b><big>ISO Directory and Image</big></b><br>
+Enter the location where the skeleton directory will be created. All needed
+files will be copied to this directory. Select a location with enough disk
+space.
 <br></p>
 ") +
 
-    /* Configure2 dialog help 2/2 */
-_("<p><b><big>Selecting something:</big></b><br>
-It is not possible, you must code it first :-)
+    /* Configure2 dialog help 2/3 */
+_("<p>You can either create an ISO image or just a directory suitable for 
+creating an ISO image in a later time.
+</p>") +
+    /* Configure2 dialog help 2/3 */
+_("<p>To save space, select the checkbox and only needed files will be copied 
+to the skeleton. 
 </p>"),
 
 ];

@@ -166,18 +166,13 @@ global define boolean Write() ``{
     integer sl = 50;
     sleep(sl);
 
-  
     // We do not set help text here, because it was set outside
     Progress::New(caption, " ", steps, [
 	    // translators: progress stage 1/2
 	    _("Write the settings"),
-	    // translators: progress stage 2/2
-	    _("Run SuSEconfig")
 	], [
-	    // translators: progress step 1/2
+	    // translators: progress step 1/1
 	    _("Writing the settings..."),
-	    // translators: progress step 2/2
-	    _("Running SuSEconfig..."),
 	    // translators: progress finished
 	    _("Finished")
 	],
@@ -190,7 +185,6 @@ global define boolean Write() ``{
 
     list c = PrepareConfigs();
     map xml = $["configurations": c];
-    
     boolean ret = XML::YCPToXMLFile(`cdcreator, xml, ConfigFile);
 
     // translators: error message
