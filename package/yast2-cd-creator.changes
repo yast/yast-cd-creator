@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Aug 11 06:06:11 CEST 2004 - nashif@suse.de
+
+- Install required packages on demand
+- Added missing directory in spec file
+
+-------------------------------------------------------------------
 Sat May  8 16:36:00 CEST 2004 - nashif@suse.de
 
 - Use modified isolinux files from the CD 
