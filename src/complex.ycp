@@ -67,7 +67,7 @@
 
         term contents = Wizard_hw::ConfiguredContent(
                 /* Table header */
-                `header(_("Name"), _("Product")),
+                `header(_("Name"), _("Product"), _("Image")),
                 overview, nil, nil, nil, nil );
 
         term contents2 = `VBox(
@@ -231,16 +231,19 @@ Please wait while the directory structure for the new ISO image is being created
             ret = UI::UserInput();
             if (ret == `next)
             {
-                string isodir = CDCreator::Config["iso-directory"]:"" + "/" +  CDCreator::Config["name"]:"";
-                string isofile = CDCreator::Config["iso-directory"]:"" + "/" +  CDCreator::Config["isofile"]:"";
-                string pub = CDCreator::Config["publisher"]:"anon";
-                string prep = CDCreator::Config["preparer"]:"anon";
+                if ( CDCreator::Config["result"]:"" == "iso")
+                {
+                    string isodir = CDCreator::Config["iso-directory"]:"" + "/" +  CDCreator::Config["name"]:"";
+                    string isofile = CDCreator::Config["iso-directory"]:"" + "/" +  CDCreator::Config["isofile"]:"";
+                    string pub = CDCreator::Config["publisher"]:"anon";
+                    string prep = CDCreator::Config["preparer"]:"anon";
 
-                string du = lookup((map)SCR::Execute(.target.bash_output, sformat("du -s -b %1 | awk -F' ' ' { printf $1 }'", isodir )), "stdout", "");
-                y2debug("Expected size: %1", du);
-                Popup::ShowFeedback(_("Creating CD Image..."), _("This may take a while"));
-                SCR::Execute (.target.bash, "/usr/bin/y2mkiso $ISODIR $ISOFILE", $["ISOFILE": isofile, "ISODIR": isodir, "CD_PUBLISHER": pub, "CD_PREPARER": prep ]);
-                Popup::ClearFeedback();
+                    string du = lookup((map)SCR::Execute(.target.bash_output, sformat("du -s -b %1 | awk -F' ' ' { printf $1 }'", isodir )), "stdout", "");
+                    y2debug("Expected size: %1", du);
+                    Popup::ShowFeedback(_("Creating CD Image..."), _("This may take a while"));
+                    SCR::Execute (.target.bash, "/usr/bin/y2mkiso $ISODIR $ISOFILE", $["ISOFILE": isofile, "ISODIR": isodir, "CD_PUBLISHER": pub, "CD_PREPARER": prep ]);
+                    Popup::ClearFeedback();
+                }
                 ret = `next;
             }
 

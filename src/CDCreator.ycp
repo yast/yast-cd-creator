@@ -242,7 +242,10 @@ global define list Summary() ``{
 global define list Overview() ``{
     y2milestone("Configs: %1", Configs);
     list overview = maplist(string name , map cfg, Configs , ``{
-	return(`item(`id(name), name, cfg["product"]:""));
+            string isofile = cfg["iso-directory"]:"" + "/" +  cfg["isofile"]:"";
+            if (SCR::Read(.target.size, isofile) < 0 )
+                isofile = _("No Files");
+	return(`item(`id(name), name, cfg["product"]:"", isofile));
     });
     return overview;
 }
