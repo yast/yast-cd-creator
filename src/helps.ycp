@@ -16,6 +16,14 @@ textdomain "cd-creator";
  */
 global map HELPS = $[
 
+    "bootconfig": _("<p><b><big>Boot Options</big></b><br>
+Here you can add additional boot menu entries with some boot options.
+</p>") +
+    _("<p>For example 
+you can configure the CD for automatic installs and specify the installation
+source location. If you are not sure, leave the file untouched and the original 
+will be used.</p>"),
+
     /* Read dialog help 1/2 */
     "read" : _("<p><b><big>Initializing Configuration</big></b><br>
 Please wait...<br></p>

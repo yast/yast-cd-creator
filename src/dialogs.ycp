@@ -42,22 +42,6 @@
         // List
         string plain_list = CDCreator::Config["package-list"]:"";
 
-        term c1 =
-            `HBox(
-                    `HWeight(10, `Empty()),
-                    `HWeight(80, `VBox(
-                            `VSquash(
-                                `HBox(
-                                    `TextEntry(`id(`plain_list_loc), _("List Locati&on:"), plain_list),
-                                    `VBox(
-                                        `VSpacing(),
-                                        `Bottom(`PushButton(`id(`open_plain_list), _("Select &File")))
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                 );
 
         term c2 =
             `HBox(
@@ -80,20 +64,17 @@
         term v =
             `VBox (
                     // radio button label
-                    `Left (`RadioButton (`id (`plain), `opt (`notify), _("&Plain package list"), pkgtype == "list")),
-                    c1,
+                    `Left (`RadioButton (`id (`pkgmgr), `opt (`notify), _("Pac&kage Manager"), pkgtype == "package-manager")),
                     // radio button label
                     `Left (`RadioButton (`id (`autoyast), `opt (`notify), _("&AutoYaST control file"), pkgtype == "autoyast")),
-                    c2,
-                    // radio button label
-                    `Left (`RadioButton (`id (`pkgmgr), `opt (`notify), _("Pac&kage Manager"), pkgtype == "package-manager"))
+                    c2
                   );
 
 
         list sources = []; // CDCreator::GetDirSources(source);
         /* CDCreator configure1 dialog contents */
         term contents =
-            `Top
+            `HVSquash
             (
              `VBox(
                  `TextEntry(`id(`name), _("&Configuration name:"), name),
@@ -121,8 +102,6 @@
 
             if (rb  == `autoyast)
             {
-                UI::ChangeWidget (`id(`plain_list_loc), `Enabled, false);
-                UI::ChangeWidget (`id(`open_plain_list), `Enabled, false);
                 UI::ChangeWidget (`id(`profile_loc), `Enabled, true);
                 UI::ChangeWidget (`id(`open_profile), `Enabled, true);
                 UI::ChangeWidget (`id(`copyprofile), `Enabled, true);
@@ -132,12 +111,8 @@
                 UI::ChangeWidget (`id(`profile_loc), `Enabled, false);
                 UI::ChangeWidget (`id(`open_profile), `Enabled, false);
                 UI::ChangeWidget (`id(`copyprofile), `Enabled, false);
-                UI::ChangeWidget (`id(`plain_list_loc), `Enabled, true);
-                UI::ChangeWidget (`id(`open_plain_list), `Enabled, true);
             }
             else  {
-                UI::ChangeWidget (`id(`plain_list_loc), `Enabled, false);
-                UI::ChangeWidget (`id(`open_plain_list), `Enabled, false);
                 UI::ChangeWidget (`id(`profile_loc), `Enabled, false);
                 UI::ChangeWidget (`id(`open_profile), `Enabled, false);
                 UI::ChangeWidget (`id(`copyprofile), `Enabled, false);
@@ -181,11 +156,6 @@
                     CDCreator::Config["profile"] = (string)UI::QueryWidget(`id(`profile_loc), `Value);
                     CDCreator::Config["copy_profile"] = (boolean)UI::QueryWidget(`id(`copyprofile), `Value);
                 }
-                else if (rb == `plain )
-                {
-                    CDCreator::Config["pkgtype"] = "list";
-                    CDCreator::Config["package-list"] = (string)UI::QueryWidget(`id(`plain_list_loc), `Value);
-                }
                 else  {
                     CDCreator::Config["pkgtype"] = "package-manager";
                 }
@@ -195,15 +165,6 @@
             else if ( ret == `back)
             {
                 break;
-            }
-            else if (ret ==`open_plain_list)
-            {
-                any new_file = UI::AskForExistingFile("" , "*",  _("Select File"));
-                if (new_file != nil)
-                {
-                    UI::ChangeWidget(`id(`plain_list_loc), `Value, (string) new_file);
-                }
-                continue;
             }
             else if (ret ==`open_profile)
             {
@@ -233,6 +194,8 @@
         string caption = _("CD Creator Configuration");
 
         string dirtree = CDCreator::Config["iso-directory"]:"";
+        string publisher = CDCreator::Config["publisher"]:"";
+        string preparer = CDCreator::Config["preparer"]:"";
         string result = CDCreator::Config["result"]:"iso";
         string db = CDCreator::Config["database"]:"original";
         string isofile_path = CDCreator::Config["isofile"]:"";
@@ -247,7 +210,7 @@
 
         /* CDCreator configure2 dialog contents */
         term contents =
-            `Top
+            `HVSquash
             (
              `VBox(
                  /*
@@ -292,9 +255,13 @@
                              )
 
                              ),
+                         `VSpacing(1),
                          `Frame(_("Other Options"),
                                  `VBox(
-                                     `Left(`CheckBox(`id(`savespace), _("Copy only needed files to save space."), savespace))
+                                     `Left(`CheckBox(`id(`savespace), _("Copy only needed files to save space."), savespace)),
+                                    `VSpacing(1),
+                                     `Left(`TextEntry(`id(`pub), _("CD Publisher:"), publisher)),
+                                     `Left(`TextEntry(`id(`prep), _("CD Preparer:"), preparer))
                                      )
                                )
 
@@ -389,6 +356,8 @@
 
                                  }
                                  CDCreator::Config["savespace"] = (boolean)UI::QueryWidget(`id(`savespace), `Value);
+                                 CDCreator::Config["publisher"] = (string)UI::QueryWidget(`id(`pub), `Value);
+                                 CDCreator::Config["preparer"] = (string)UI::QueryWidget(`id(`prep), `Value);
                                  break;
                              }
                              else {
@@ -514,12 +483,13 @@
                         `MultiLineEdit(`id(`isolinux),
                             sformat(_("File contents: %1"), bootconfig),
                             isolinux
-                            )
+                            ),
+                        `PushButton(`id(`loadfile), _("Load file"))
                         )
                 );
 
 
-        Wizard::SetContentsButtons(caption, contents, HELPS["c3"]:"",
+        Wizard::SetContentsButtons(caption, contents, HELPS["bootconfig"]:"",
                 Label::BackButton(), Label::NextButton());
 
         any ret = nil;
@@ -529,6 +499,20 @@
             if(ret == `abort || ret == `cancel) {
                 if(CDCreator::ReallyAbort()) break;
                 else continue;
+            }
+
+            else if (ret ==`loadfile)
+            {
+                any new_file = UI::AskForExistingFile( "" , "*", _("Select File"));
+                if (new_file != nil)
+                {
+                    if (SCR::Read(.target.size, new_file)> 0)
+                    {
+                        string file = (string)SCR::Read(.target.string, new_file );
+                        UI::ChangeWidget(`id(`isolinux), `Value, (string)file);
+                    }
+                }
+                continue;
             }
             else if(ret == `next) {
                 string isolinux_new = (string)UI::QueryWidget(`id(`isolinux), `Value);

@@ -642,6 +642,8 @@ global define string checkPackageAvail() ``{
 /**
  * CopyPackages()
  * Copy selected package to target tree
+ * @param integer id
+ * @return boolean
  */
 global define boolean CopyPackages(integer id) ``{
 

@@ -153,6 +153,7 @@
     /**
      * TreeDialog
      * Dialog for creating the skeleton and copying common data.
+     * @return symbol
      */
     define symbol TreeDialog () ``{
 
@@ -160,7 +161,7 @@
 
 
         string help = _("<P>
-                Please wait while the directory structure for the new ISO image is being created.
+Please wait while the directory structure for the new ISO image is being created.
                 </P>
                 ");
         help = help + _("<p>Press <b>Next</b> to start creating the ISO file.</p>");
@@ -230,6 +231,16 @@
             ret = UI::UserInput();
             if (ret == `next)
             {
+                string isodir = CDCreator::Config["iso-directory"]:"" + "/" +  CDCreator::Config["name"]:"";
+                string isofile = CDCreator::Config["iso-directory"]:"" + "/" +  CDCreator::Config["isofile"]:"";
+                string pub = CDCreator::Config["publisher"]:"anon";
+                string prep = CDCreator::Config["preparer"]:"anon";
+
+                string du = lookup((map)SCR::Execute(.target.bash_output, sformat("du -s -b %1 | awk -F' ' ' { printf $1 }'", isodir )), "stdout", "");
+                y2debug("Expected size: %1", du);
+                Popup::ShowFeedback(_("Creating CD Image..."), _("This may take a while"));
+                SCR::Execute (.target.bash, "/usr/bin/y2mkiso $ISODIR $ISOFILE", $["ISOFILE": isofile, "ISODIR": isodir, "CD_PUBLISHER": pub, "CD_PREPARER": prep ]);
+                Popup::ClearFeedback();
                 ret = `next;
             }
 
@@ -239,8 +250,8 @@
 
     /**
      * ISO Summary
+     * @return symbol
      */
-
     define symbol isoSummary() ``{
         import "HTML";
 
@@ -263,7 +274,7 @@
             `RichText(html);
 
         string help_text = _("<p>Verify if the data in the summary box is correct then
-                press Next to continue.</p>
+                press Finish to return to main dialog.</p>
                 ");
 
         Wizard::SetContentsButtons ( caption,
