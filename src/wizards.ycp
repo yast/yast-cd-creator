@@ -163,6 +163,7 @@ define symbol CDCreatorAutoSequence() ``{
     term contents = `Label(_("Initializing..."));
 
     Wizard::CreateDialog();
+    Wizard::SetDesktopIcon("cd-creator");
     Wizard::SetContentsButtons(caption, contents, "",
 	    Label::BackButton(), Label::NextButton());
 
@@ -198,6 +199,7 @@ define symbol CDCreatorSequence() ``{
     ];
 
     Wizard::CreateDialog();
+    Wizard::SetDesktopIcon("cd-creator");
 
     symbol ret = WizardSequencer(aliases, sequence);
 
