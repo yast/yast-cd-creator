@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Feb 10 05:50:12 CET 2005 - nashif@suse.de
+
+- Merged back some fixes from SLES9
+
+-------------------------------------------------------------------
 Wed Feb  9 19:05:46 CET 2005 - nashif@suse.de
 
 - Save configuration data into /etc/YaST/cd-creator
