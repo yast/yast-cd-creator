@@ -50,7 +50,7 @@ global map<string, any> Config = $[];
 global map<string, map<string, any> > Configs = $[];
 
 /* Configuration Repository */
-global string Rep = "/var/lib/YaST2/cd-creator";
+global string Rep = "/etc/YaST2/cd-creator";
 
 /* Configuration file */
 global string ConfigFile = Rep + "/cdcreator.xml";
