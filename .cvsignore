@@ -16,5 +16,5 @@ install-sh
 missing
 mkinstalldirs
 stamp-h
-CD-creator.pot
+cd-creator.pot
 autom4te.cache
