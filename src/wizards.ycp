@@ -25,7 +25,7 @@ include "cd-creator/dialogs.ycp";
  * Add a configuration of cd-creator
  * @return sequence result
  */
-global define symbol AddSequence() ``{
+define symbol AddSequence() ``{
 
 
     map aliases = $[
@@ -78,7 +78,7 @@ global define symbol AddSequence() ``{
  * Create a CD image tree and ISO image
  * @return sequence result
  */
-global define symbol CreateSequence() ``{
+define symbol CreateSequence() ``{
    map aliases = $[
 	"verify"	: ``( VerifyDialog() ),
 	"create"	: ``( TreeDialog() )
@@ -107,7 +107,7 @@ global define symbol CreateSequence() ``{
  * Main workflow of the cd-creator configuration
  * @return sequence result
  */
-global define symbol MainSequence() ``{
+define symbol MainSequence() ``{
 
 
     map aliases = $[
@@ -156,7 +156,7 @@ global define symbol MainSequence() ``{
  * @return sequence result
  */
 
-global define symbol CDCreatorAutoSequence() ``{
+define symbol CDCreatorAutoSequence() ``{
     /* Initialization dialog caption */
     string caption = _("CD Creator Configuration");
     /* Initialization dialog contents */
@@ -177,7 +177,7 @@ global define symbol CDCreatorAutoSequence() ``{
  * Whole configuration of cd-creator
  * @return sequence result
  */
-global define symbol CDCreatorSequence() ``{
+define symbol CDCreatorSequence() ``{
 
     map aliases = $[
 	"main"	:   ``( MainSequence() ),
