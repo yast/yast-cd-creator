@@ -1,13 +1,24 @@
 
 
-                           Welcome to SuSE Linux!
+                           Welcome to SUSE Linux!
 
-                    _         _     __   __    ____ _____ ____
-                   / \  _   _| |_ __\ \ / /_ _/ ___|_   _|___ \
-                  / _ \| | | | __/ _ \ V / _` \___ \ | |   __) |
-                 / ___ \ |_| | || (_) | | (_| |___) || |  / __/
-                /_/   \_\__,_|\__\___/|_|\__,_|____/ |_| |_____|
 
+
+0fTo start the installation enter 'linux' and press <return>.07
+
+
+Available boot options:
+
+  harddisk  - Boot from Harddisk (this is default)
+  AutoYaST  - Auto Installation
+  linux     - Installation
+  noacpi    - Installation - ACPI Disabled
+  failsafe  - Installation - Safe Settings
+  manual    - Manual Installation
+  rescue    - Rescue System
+  memtest   - Memory Test
+
+'noacpi' or 'failsafe' may be necessary on some tricky hardware.
 
 Have a lot of fun...
 

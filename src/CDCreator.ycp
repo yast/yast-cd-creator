@@ -23,6 +23,8 @@ import "InstSource";
 import "URL";
 import "Misc";
 import "Directory";
+import "Profile";
+import "AutoinstSoftware";
 
 
 global string AYRepository = "";
@@ -66,11 +68,6 @@ global boolean modified = false;
 
 global boolean proposal_valid = false;
 
-/**
- * Write only, used during autoinstallation.
- * Don't run services and SuSEconfig, it's all done at one place.
- */
-global boolean write_only = false;
 
 /**
  * Data was modified?
@@ -293,12 +290,19 @@ global define string Readisolinux() ``{
 	return bootconfig;
     }
 
-    // FIXME
-    string dir = getSourceDir(Config["sources", 0]:"" );
-
-    string bootconfig_path = sformat("%1/boot/loader/isolinux.cfg", dir );
+    string bootconfig_path = "";
+    if (Config["pkgtype"]:"" == "autoyast")
+    {
+        bootconfig_path = sformat("%1/cd-creator/isolinux.cfg",
+                Directory::datadir);
+    }
+    else
+    {
+        string dir = getSourceDir(Config["sources", 0]:"" );
+        bootconfig_path = sformat("%1/boot/loader/isolinux.cfg", dir );
+    }
     if (SCR::Read(.target.size, bootconfig_path) != -1 )
-	bootconfig = (string)SCR::Read(.target.string, bootconfig_path );
+          bootconfig = (string)SCR::Read(.target.string, bootconfig_path );
     return bootconfig;
 }
 
@@ -389,6 +393,14 @@ global define boolean  CreateSkeleton (integer id) ``{
     commands= add(commands, sformat("/usr/bin/head -n 2 %1/media.1/media  >   %2/media.1/media.tmp && mv %2/media.1/media.tmp %2/media.1/media",  skel_root, skel_root));
 
 
+    // copy autoyast profile
+
+
+    if (Config["profile"]:""!="" && Config["copy_profile"]:false)
+    {
+        commands = add(commands, sformat("/bin/cp %1 %2/autoinst.xml", Config["profile"]:"",
+                skel_root));
+    }
     // Media nr.
     integer count = 1;
 
@@ -549,6 +561,10 @@ global define boolean setPackages() ``{
     list<string> post_packages  = Config["post-packages"]:[];
     string kernel = Config["kernel"]:"";
 
+    if (kernel == "")
+    {
+        kernel = "kernel-default";
+    }
 
 
     // Base Selection
@@ -585,8 +601,10 @@ global define boolean setPackages() ``{
   * get physical rpm location
   * @return: package path
   */
-global define  string  getRpmPath( map package_data) ``{
+global define  string  getRpmPath( map package_data)
+{
 
+    y2debug("package data: %1", package_data );
     integer srcid = package_data["srcid"]:-1;
     map s = meta[srcid]:$[];
     map pd = s["productData"]:$[];
@@ -595,7 +613,18 @@ global define  string  getRpmPath( map package_data) ``{
     string url = md["url"]:"";
     map urlmap = URL::Parse(url);
     string ArchLocation =  sformat("%1/%2", package_data["arch"]:"noarch", package_data["location"]:"norpm.rpm");
-    string FullPath =  urlmap["path"]:"" + "/" + dataDir + "/" + ArchLocation;
+    string p = urlmap["path"]:"";
+    list<string> pp = splitstring(p, "/");
+    if (pp[size(pp)-1]:"" == "CD1" ) {
+        pp[size(pp)-1] = sformat("CD%1", package_data["medianr"]:1);
+    }
+    else if  (pp[size(pp)-2]:"" == "CD1" ) {
+        pp[size(pp)-2] = sformat("CD%1", package_data["medianr"]:1);
+    }
+
+    p = mergestring(pp, "/");
+    y2debug("new path: %1", p);
+    string FullPath =  p + "/" + dataDir + "/" + ArchLocation;
     return FullPath;
 };
 
@@ -648,6 +677,7 @@ global define string checkPackageAvail() ``{
 	integer num = size(failed);
 	error_msg = sformat(_("%1 package not available.", "%1 packages not available.", num), num);
     }
+    y2milestone("packages not found: %1", failed);
 
     return error_msg;
 }
@@ -665,11 +695,13 @@ global define string checkPackageAvail() ``{
 global boolean CopyPackages(integer id)
 {
     string datadir  = meta[id,"productData", "datadir"]:"suse";
+    string basedir = Config["iso-directory"]:"" + "/" +  Config["name"]:"" +
+        "/" +  datadir;
     foreach(map package, toCopy, ``{
 
 	Progress::Title(sformat(_("Copying %1"), package["name"]:"..." ));
 	Progress::NextStep();
-	string dir = Config["iso-directory"]:"" + "/" +  Config["name"]:"" + "/" +  datadir + "/" + package["arch"]:"";
+	string dir = basedir + "/" + package["arch"]:"";
 
 	if (SCR::Read(.target.dir, dir) == nil )
 	{
@@ -691,6 +723,10 @@ Check the created directory for possible hints."));
         }
 
     });
+    SCR::Execute(.target.bash, sformat("cd %1 && " +
+                "/usr/bin/create_package_descr -x setup/descr/EXTRA_PROV",
+                basedir));
+
 
     return true;
 }
@@ -699,7 +735,6 @@ Check the created directory for possible hints."));
 
 global define boolean readControlFile(string filename) ``{
 
-    import "Profile";
     if (profile_parsed)
         return true;
     if (!Profile::ReadXML(filename))
@@ -707,10 +742,12 @@ global define boolean readControlFile(string filename) ``{
         Report::Error(_("Error reading control file."));
         return false;
     }
+
     map software = Profile::current["install", "software"]:$[];
     Config["base"] = software["base"]:"";
     Config["addons"] = software["addons"]:[];
-    Config["packages"] = software["packages"]:[];
+    AutoinstSoftware::packages = software["packages"]:[];
+    Config["packages"] = AutoinstSoftware::autoinstPackages();
     y2debug("Config: %1", Config );
     profile_parsed = true;
     return true;

@@ -208,7 +208,8 @@
 
         if(CDCreator::Abort()) return `abort;
         Progress::NextStage();
-        CDCreator::CopyMiscFiles();
+        if (CDCreator::Config["pkgtype"]:"" == "autoyast")
+            CDCreator::CopyMiscFiles();
 
         Progress::NextStage();
         if (!CDCreator::CopyPackages(id))
