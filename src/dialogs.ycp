@@ -564,10 +564,10 @@
                 `HVCenter(`Label(_("Reading package database..."))),
                 helptext, false, true);
 
-        list available_base_selections = Pkg::GetSelections( `available, "base" );
+        list<string> available_base_selections = Pkg::GetSelections( `available, "base" );
         y2debug ("available_base_selections %1", available_base_selections);
 
-        list current_base_selections = Pkg::GetSelections( `selected, "base" );
+        list<string> current_base_selections = Pkg::GetSelections( `selected, "base" );
         y2debug ("current_base_selections %1", current_base_selections);
 
         // save the current base selection
@@ -579,7 +579,7 @@
         // sort available_base_selections by order
         // $[ "order" : [ "name", "summary" ], .... ]
 
-        map sorted_base_selections = $[];
+        map<string, list> sorted_base_selections = $[];
         foreach( string selection, available_base_selections,
                 ``{
                 map selection_data = Pkg::SelectionData (selection);
@@ -743,7 +743,7 @@
         if (haskey(CDCreator::Configs, old_name) && old_name != "")
         {
 
-            CDCreator::Configs = filter(string k, map v, CDCreator::Configs, ``(k!=old_name));
+            CDCreator::Configs = filter(string k, map<string,any> v, CDCreator::Configs, ``(k!=old_name));
             remove(CDCreator::Config, "old_name");
         }
         CDCreator::Configs[name] = CDCreator::Config;

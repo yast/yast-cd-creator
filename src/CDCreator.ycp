@@ -26,9 +26,9 @@ import "URL";
 
 global map meta = $[];
 
-global list missing_packages = [];
+global list<string> missing_packages = [];
 
-global list toCopy = [];
+global list<map> toCopy = [];
 
 /* Local variables */
 
@@ -38,10 +38,10 @@ string skel_root = "";
 
 
 /* Configuration Map */
-global map Config = $[];
+global map<string, any> Config = $[];
 
 /* All Configurations */
-global map Configs = $[];
+global map<string, map<string, any> > Configs = $[];
 
 /* Configuration Repository */
 global string Rep = "/var/lib/YaST2/cd-creator";
@@ -116,8 +116,8 @@ global define boolean Read() ``{
     {
 	c = XML::XMLToYCPFile(ConfigFile);
     }
-    list all = c["configurations"]:[];
-    Configs = listmap (map i, all, ``{
+    list<map<string, any> > all = c["configurations"]:[];
+    Configs = listmap (map<string,any> i, all, ``{
 	string name = i["name"]:"";
 	return($[name: i]);
     });
@@ -256,8 +256,8 @@ global define list Overview() ``{
  * @param list list of ids
  * @return list list of urls
  */
-global define list getSourceURLs ( list ids ) ``{
-    list urls = maplist(integer i , ids, ``{
+global define list getSourceURLs ( list<integer> ids ) ``{
+    list<string> urls = maplist(integer i , ids, ``{
 	map media = Pkg::SourceMediaData(i);
 
 	return(media["url"]:"");
@@ -325,7 +325,7 @@ global define void configSetup()
  */
 global define boolean  CreateSkeleton (integer id) ``{
 
-    list commands = [];
+    list<string> commands = [];
     integer ret = 0;
     boolean success = true;
     boolean savespace = Config["savespace"]:false;
@@ -427,12 +427,13 @@ global define boolean EnableSource() ``{
     if (size(ids) == 0 )
 	return false;
     foreach(integer i , sources, ``{
-	map<string, map> m = $[];
+	map<string, any> m = $[];
 	m["productData"] = Pkg::SourceProductData(i);
 	m["mediaData"] = Pkg::SourceMediaData(i);
 	m["sourceData"]	= Pkg::SourceGeneralData(i);
         string p = m["sourceData", "url"]:"";
-        m["path"] = lookup(URL::Parse(p), "path", "");
+        map parsed = URL::Parse(p);
+        m["path"] = parsed["path"]:"";
 	meta[i] = m;
     });
 
@@ -445,9 +446,9 @@ global define boolean EnableSource() ``{
  * Get all possible sources
  * @return available enabled sources list for widget
  */
-global define list GetDirSources(string source) ``{
-    list ids = Pkg::SourceStartCache(true);
-    list sources = [];
+global define list<term> GetDirSources(string source) ``{
+    list<integer> ids = Pkg::SourceStartCache(true);
+    list<term> sources = [];
     foreach(integer i , ids, ``{
         map prod = Pkg::SourceProductData(i);
         map media = Pkg::SourceMediaData(i);
@@ -471,13 +472,13 @@ global define list GetDirSources(string source) ``{
  */
 global define list checkProductDependency() ``{
 
-    list sources =  maplist(string url , Config["sources"]:[], ``{
+    list<integer> sources =  maplist(string url , Config["sources"]:[], ``{
 	integer i = InstSource::getSourceID(url);
 	UI::ChangeWidget(`id(`table), `Item(i, 0) , _("X"));
 	return (i);
     });
 
-    list products = maplist(integer id , sources, ``{
+    list<map> products = maplist(integer id , sources, ``{
 	map generalData = Pkg::SourceGeneralData( id );
 	map productData = Pkg::SourceProductData( id );
 
@@ -491,9 +492,9 @@ global define list checkProductDependency() ``{
 	return(result);
     });
 
-    list final = maplist( map product, products, ``{
-	list based_on_this = filter(map p, products, ``(product["product"]:"" == p["baseproduct"]:""));
-	list ids = maplist(map p, based_on_this, ``(p["id"]:-1));
+    list<map> final = maplist( map product, products, ``{
+	list<map> based_on_this = filter(map p, products, ``(product["product"]:"" == p["baseproduct"]:""));
+	list<integer> ids = maplist(map p, based_on_this, ``(p["id"]:-1));
 	y2milestone("Products based on %1: %2", product["product"]:"", based_on_this );
 	product["dependents"] = ids;
 	return(product);
@@ -513,11 +514,11 @@ global define list checkProductDependency() ``{
 global define void enableSources()``{
 
 
-    list old_enabled = Pkg::SourceGetCurrent(true);
+    list<integer> old_enabled = Pkg::SourceGetCurrent(true);
     foreach(integer id , old_enabled, ``{
 		Pkg::SourceFinish(id);
 	});
-    list sources = Config["source_ids"]:[];
+    list<integer> sources = Config["source_ids"]:[];
 
     foreach(integer id , sources, ``{
 		Pkg::SourceSetEnabled(id, true);
@@ -612,9 +613,9 @@ global define string checkPackageAvail() ``{
 
     Progress::Title(_("Checking for package availability..."));
 
-    list selectedPackages = Pkg::GetPackages (`selected , true);
+    list<string> selectedPackages = Pkg::GetPackages (`selected , true);
 
-    list failed = [];
+    list<string> failed = [];
     toCopy = [];
     foreach(string package, selectedPackages, ``{
 

@@ -11,7 +11,7 @@
 
 {
     module "InstSource";
-    textdomain "packager";
+    textdomain "cd-creator";
 
     import "Popup";
     import "URL";
@@ -117,14 +117,14 @@
 
 
     global define integer getSourceID( string url ) ``{
-	list sources = Pkg::SourceGetCurrent ( false );
+	list<integer> sources = Pkg::SourceGetCurrent ( false );
 	integer id = -1;
 	foreach(integer i , sources, ``{
 	     map media = Pkg::SourceMediaData(i);
 	     if (media["url"]:"" == url )
 		 id = i;
 	});
-	
+
 	return id;
     }
 

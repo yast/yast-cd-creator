@@ -113,7 +113,7 @@
             /* delete */
             else if(ret == `delete_button) {
                 y2debug("Deleting: %1", current);
-                CDCreator::Configs = filter(string k, map v, CDCreator::Configs, ``(k!=current));
+                CDCreator::Configs = filter(string k, map<string,any> v, CDCreator::Configs, ``(k!=current));
                 overview = CDCreator::Overview();
                 UI::ChangeWidget(`id(`table), `Items, overview);
                 if (size(overview) == 0 )
@@ -169,14 +169,14 @@
 
 
 
-        list progress_stages =
+        list<string> progress_stages =
             [
             _("Create skeleton with common files"),
         _("Copy additional and customized files"),
         _("Copy selected packages")
             ];
 
-        list progress_descriptions =
+        list<string> progress_descriptions =
             [
 
             _("Creating skeleton with essential files"),
@@ -315,7 +315,7 @@
                     Fix the problem and try again.</p>
                     ");
 
-            list progress_stages =
+            list<string> progress_stages =
                 [
                 _("Set up Package Source"),
             _("Create Package List"),
@@ -323,7 +323,7 @@
             _("Check Destination")
                 ];
 
-            list progress_descriptions =
+            list<string> progress_descriptions =
                 [
                 _("Configuring package source..."),
             _("Creating package list..."),
