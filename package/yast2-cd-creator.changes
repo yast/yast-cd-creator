@@ -1,4 +1,22 @@
 -------------------------------------------------------------------
+Sat May  8 16:36:00 CEST 2004 - nashif@suse.de
+
+- Use modified isolinux files from the CD 
+
+-------------------------------------------------------------------
+Sat May  8 04:42:36 CEST 2004 - nashif@suse.de
+
+- Copy profile to created CD
+- Re-create package database
+
+-------------------------------------------------------------------
+Wed May  5 04:51:45 CEST 2004 - nashif@suse.de
+
+- If no kernel is selected, copy default kernel to CD
+- Fixe support for sources with multiple directories (CD1-5)
+- V. 2.9.10
+
+-------------------------------------------------------------------
 Fri Apr  2 17:32:18 CEST 2004 - nashif@suse.de
 
 - License changed to GPL

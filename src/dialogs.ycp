@@ -139,7 +139,7 @@
                 if (haskey(CDCreator::Configs, name) &&
                         CDCreator::Config["name"]:"" != name)
                 {
-                    Report::Error(_("A configuration with this name already exists,
+                    Report::Error(_("A configuration with this name already exists.
                                 Select a new name.
 "));
                                 continue;
@@ -481,7 +481,7 @@
                             sformat(_("File Contents: %1"), bootconfig),
                             isolinux
                             ),
-                        `PushButton(`id(`loadfile), _("Load file"))
+                        `PushButton(`id(`loadfile), _("Load File"))
                         )
                 );
 

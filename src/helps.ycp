@@ -17,12 +17,14 @@ textdomain "cd-creator";
 map HELPS = $[
 
     "bootconfig": _("<p><b><big>Boot Options</big></b><br>
-Here you can add additional boot menu entries with some boot options.
-</p>") +
-    _("<p>For example 
+Here, add additional boot menu entries with some boot options.
+</p>
+") +
+    _("<p>For example, 
 you can configure the CD for automatic installs and specify the installation
 source location. If you are not sure, leave the file untouched and the original 
-will be used.</p>"),
+will be used.</p>
+"),
 
     /* Read dialog help 1/2 */
     "read" : _("<p><b><big>Initializing Configuration</big></b><br>
@@ -69,20 +71,17 @@ Choose a configuration name and the method with which to select
 the packages to add to the ISO image.<br></p>
 ") +
 
-    /* Configure1 dialog help 2/4 */
-_("<b>Plain Package List</b><p>
-Select a file with a package list to use. The list should only contain
-the names of the packages (one package per line).
-</p>
-") +
     /* Configure1 dialog help 3/4 */
 _("<b>AutoYaST Profile</b><p>
-Select an AutoYaST Profile with the software configuration.
+Select an AutoYaST profile with the software configuration.
 </p>
 ") +
     /* Configure1 dialog help 3/4 */
 _("<b>Package Manager</b><p>
-Use the package manager without any preselected packages.
+Use the package manager without any preselected packages. Note that all
+packages automatically computed during installation  have to be manually
+selected depending on the type of hardware and architecture you are
+creating this CD for.
 </p>
 "),
 
