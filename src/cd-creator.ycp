@@ -17,7 +17,6 @@
 
 textdomain "cd-creator";
 
-include "commandline/commandline.ycp";
 include "cd-creator/wizards.ycp";
 
 map cmdline_description = $[

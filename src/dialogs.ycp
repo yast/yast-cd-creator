@@ -14,6 +14,7 @@
     import "CDCreator";
     import "Wizard";
     import "InstSource";
+    import "Report";
 
     import "Label";
 
@@ -23,7 +24,7 @@
  * General configuration dialog
  * @return dialog result
  */
-    global define symbol Configure1Dialog () ``{
+    define symbol Configure1Dialog () ``{
 
 	/* CDCreator configure1 dialog caption */
 	string caption = _("CD Creator Configuration");
@@ -226,7 +227,7 @@ Select a new name."));
  * Configure2 dialog
  * @return dialog result
  */
-    global define symbol Configure2Dialog () ``{
+    define symbol Configure2Dialog () ``{
 
 	/* CDCreator configure2 dialog caption */
 	string caption = _("CD Creator Configuration");
@@ -402,7 +403,7 @@ Select a new name."));
  * Dialog for selecting the sources
  * @return symbol
  */
-    global define symbol sourceDialog() ``{
+    define symbol sourceDialog() ``{
 
 	/* dialog caption */
 	string caption = _("Source Selection");
@@ -495,7 +496,7 @@ Select a new name."));
  * Configure3 dialog
  * @return dialog result
  */
-    global define symbol isolinuxDialog () ``{
+    define symbol isolinuxDialog () ``{
 
 	/* dialog caption */
 	string caption = _("CD Creator Configuration");
@@ -555,7 +556,7 @@ Select a new name."));
  * Select packages
  * @return symbol
  */
-    global define symbol packageSelector() ``{
+    define symbol packageSelector() ``{
 
 	string language = UI::GetLanguage(true);
 
@@ -751,7 +752,7 @@ more <b>add-on</b> selections and packages.
  * Configuration Summary
  */
 
-    global define symbol ConfigSummary() ``{
+    define symbol ConfigSummary() ``{
 	import "HTML";
 
 

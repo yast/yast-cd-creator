@@ -26,7 +26,7 @@ include "cd-creator/helps.ycp";
  * Return a modification status
  * @return true if data was modified
  */
-global define boolean Modified() ``{
+define boolean Modified() ``{
     return CDCreator::Modified();
 }
 
@@ -34,7 +34,7 @@ global define boolean Modified() ``{
  * Read settings dialog
  * @return `abort if aborted and `next otherwise
  */
-global define symbol ReadDialog() ``{
+define symbol ReadDialog() ``{
     Wizard::RestoreHelp(HELPS["read"]:"");
     CDCreator::AbortFunction = ``{ return CDCreator::PollAbort();};
     boolean ret = CDCreator::Read();
@@ -45,7 +45,7 @@ global define symbol ReadDialog() ``{
  * Write settings dialog
  * @return `abort if aborted and `next otherwise
  */
-global define symbol WriteDialog() ``{
+define symbol WriteDialog() ``{
     Wizard::RestoreHelp(HELPS["write"]:"");
     CDCreator::AbortFunction = ``{ return CDCreator::PollAbort();};
     boolean ret = CDCreator::Write();
@@ -56,7 +56,7 @@ global define symbol WriteDialog() ``{
  * Summary dialog
  * @return dialog result
  */
-global define symbol SummaryDialog() ``{
+define symbol SummaryDialog() ``{
 
     /* CDCreator summary dialog caption */
     string caption = _("CD Creator Configurations");
@@ -104,7 +104,7 @@ global define symbol SummaryDialog() ``{
  * Overview dialog
  * @return dialog result
  */
-global define symbol OverviewDialog() ``{
+define symbol OverviewDialog() ``{
 
     /* CDCreator overview dialog caption */
     string caption = _("CD Creator Configuration Overview");
@@ -196,7 +196,7 @@ global define symbol OverviewDialog() ``{
  * TreeDialog
  * Dialog for creating the skeleton and copying common data.
  */
-global define symbol TreeDialog () ``{
+define symbol TreeDialog () ``{
 
     import "Progress";
 
@@ -276,7 +276,7 @@ Please wait while the directory structure for the new ISO image is being created
  * ISO Summary
  */
 
-global define symbol isoSummary() ``{
+define symbol isoSummary() ``{
     import "HTML";
 
     // caption
@@ -319,7 +319,7 @@ press Next to continue.</p>
  * Verify Dialog
  *
  */
-global define symbol VerifyDialog()
+define symbol VerifyDialog()
     ``{
 
     import "Progress";
