@@ -154,7 +154,6 @@
 	    }
 	    else if(ret == `next ) {
 
-		source = (string)UI::QueryWidget(`id(`source), `Value);
 		string name = (string)UI::QueryWidget(`id(`name), `Value);
 
 		if (name == "")
@@ -162,7 +161,8 @@
 		    Report::Error(_("Fill in the name of the Configuration."));
 		    continue;
 		}
-		if (haskey(CDCreator::Configs, name))
+		if (haskey(CDCreator::Configs, name) &&
+                        CDCreator::Config["name"]:"" != name)
 		{
 		    Report::Error(_("A Configuration with this name already exists,
 Select a new name."));
@@ -410,7 +410,7 @@ Select a new name."));
 
 	InstSource::ReadSources();
 	list sources = InstSource::fillSourceTable([], true , "dir");
-
+        y2debug("sources: %1", sources);
 
 	term table =
 	    `Table( `id( `table ), `opt( `keepSorting ),
@@ -572,15 +572,11 @@ more <b>add-on</b> selections and packages.
 
 
 	Popup::ShowFeedback(_("Reading data from Package Database"), _("Please wait..."));
-    
 	Pkg::SourceStartManager(true);
 	//CDCreator::enableSources();
 
 	Popup::ClearFeedback();
-	Popup::FinishFeedback();
 
-
-    
 	Wizard::CreateDialog();
 
 	Wizard::SetContents(caption,

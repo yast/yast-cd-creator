@@ -84,11 +84,13 @@ global define symbol CreateSequence() ``{
 	"ws_start" : "verify",
 	"verify" : $[
 	    `abort	: `abort,
-	    `next	: "create"
+	    `next	: "create",
+	    `overview	: `next
 	],
 	"create": $[
 	    `abort	: `abort,
-	    `next	: `next
+	    `next	: `next,
+	    `overview	: `next
 	]
 
     ];
