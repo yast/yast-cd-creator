@@ -366,6 +366,7 @@ global define boolean  CreateSkeleton (integer id) ``{
 	// Loader, x86 specific
 	commands= add(commands, sformat("/bin/cp  %1/boot/loader/* %2/boot/loader", source, skel_root));
 	commands= add(commands, sformat("/bin/cp  %1/content %2", source, skel_root));
+	commands= add(commands, sformat("/bin/cp  %1/control.xml %2", source, skel_root));
 
     }
     else
