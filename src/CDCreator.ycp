@@ -37,7 +37,7 @@ global list<map> toCopy = [];
 
 /* Local variables */
 
-string skel_root = "";
+global string skel_root = "";
 
 
 global boolean profile_parsed = false;
@@ -395,11 +395,25 @@ global define boolean  CreateSkeleton (integer id) ``{
  */
 global define boolean CopyMiscFiles() ``{
 
-    string cpCmd = sformat("cp %1/cd-creator/isolinux.cfg %2/boot/loader", Directory::datadir, skel_root);
+    string cpCmd = "";
+    y2debug("bootconfig :%1", Config["bootconfig"]:"");
+    if (Config["bootconfig"]:"" != "") 
+    {
+        y2debug("bootconfig available");
+        SCR::Write(.target.string, 
+                sformat("%1/boot/loader/isolinux.cfg", skel_root), 
+                Config["bootconfig"]:"" );
+        /*
+        string cpCmd = sformat("cp %1/cd-creator/isolinux.cfg %2/boot/loader",
+            Directory::datadir, skel_root);
+        SCR::Execute (.target.bash, cpCmd);
+            */
+    }
+    cpCmd = sformat("cp %1/cd-creator/message %2/boot/loader",
+            Directory::datadir, skel_root);
     SCR::Execute (.target.bash, cpCmd);
-    cpCmd = sformat("cp %1/cd-creator/message %2/boot/loader", Directory::datadir, skel_root);
-    SCR::Execute (.target.bash, cpCmd);
-    cpCmd = sformat("cp %1/cd-creator/options.msg %2/boot/loader", Directory::datadir, skel_root);
+    cpCmd = sformat("cp %1/cd-creator/options.msg %2/boot/loader",
+            Directory::datadir, skel_root);
     SCR::Execute (.target.bash, cpCmd);
 
 
