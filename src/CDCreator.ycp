@@ -21,8 +21,11 @@ import "Summary";
 import "XML";
 import "InstSource";
 import "URL";
+import "Misc";
+import "Directory";
 
 
+global string AYRepository = "";
 
 global map meta = $[];
 
@@ -35,6 +38,7 @@ global list<map> toCopy = [];
 string skel_root = "";
 
 
+global boolean profile_parsed = false;
 
 
 /* Configuration Map */
@@ -276,6 +280,7 @@ global define string getSourceDir(string url) ``{
     map urlsegs = URL::Parse(url);
     return(urlsegs["path"]:"");
 }
+
 /**
  * Return contents of isolinux.cfg from the given source
  * @return string with contents of file.
@@ -290,7 +295,7 @@ global define string Readisolinux() ``{
 
     // FIXME
     string dir = getSourceDir(Config["sources", 0]:"" );
-    
+
     string bootconfig_path = sformat("%1/boot/loader/isolinux.cfg", dir );
     if (SCR::Read(.target.size, bootconfig_path) != -1 )
 	bootconfig = (string)SCR::Read(.target.string, bootconfig_path );
@@ -335,9 +340,11 @@ global define boolean  CreateSkeleton (integer id) ``{
     SCR::Execute(.target.mkdir, skel_root);
 
     map this_source = meta[id]:$[];
+    y2debug("this source: %1", this_source );
     string descrDir = this_source["productData","descrdir"]:"suse/setup/descr";
-    string dataDir  = this_source["productData", "datadir"]:"./suse";
-    y2milestone("source data: %1", this_source["sourceData", "url"]:"" );
+    string dataDir  = this_source["productData", "datadir"]:"suse";
+    y2debug("source data: %1", this_source["sourceData", "url"]:"" );
+
     string source   = this_source["path"]:"";
     if (source == "")
         return false;
@@ -348,7 +355,7 @@ global define boolean  CreateSkeleton (integer id) ``{
 
     commands= add(commands, sformat("/bin/mkdir -p %1/boot", skel_root));
     commands= add(commands, sformat("/bin/mkdir -p %1/boot/loader", skel_root));
-    commands= add(commands, sformat("/bin/mkdir -p   %1//%2",  skel_root, descrDir));
+    commands= add(commands, sformat("/bin/mkdir -p %1/%2",  skel_root, descrDir));
 
     if (savespace)
     {
@@ -387,6 +394,7 @@ global define boolean  CreateSkeleton (integer id) ``{
     commands= add(commands, sformat("/bin/echo %1 >> %2/media.1/media ", count,  skel_root));
 
     foreach (string c, commands, ``{
+        y2debug("command: %1", c);
 	ret = (integer)SCR::Execute (.target.bash, c);
     });
 
@@ -401,11 +409,11 @@ global define boolean  CreateSkeleton (integer id) ``{
  */
 global define boolean CopyMiscFiles() ``{
 
-    string cpCmd = sformat("cp /usr/share/autoinstall/isolinux.cfg %1/boot/loader", skel_root);
+    string cpCmd = sformat("cp %1/cd-creator/isolinux.cfg %2/boot/loader", Directory::datadir, skel_root);
     SCR::Execute (.target.bash, cpCmd);
-    cpCmd = sformat("cp /usr/share/autoinstall/message %1/boot/loader", skel_root);
+    cpCmd = sformat("cp %1/cd-creator/message %2/boot/loader", Directory::datadir, skel_root);
     SCR::Execute (.target.bash, cpCmd);
-    cpCmd = sformat("cp /usr/share/autoinstall/options.msg %1/boot/loader", skel_root);
+    cpCmd = sformat("cp %1/cd-creator/options.msg %2/boot/loader", Directory::datadir, skel_root);
     SCR::Execute (.target.bash, cpCmd);
 
 
@@ -530,8 +538,8 @@ global define void enableSources()``{
 
 
 /**
- * Set packages to be copies to iso image tree
- * @return void
+ * Set packages to be copied to iso image tree
+ * @return boolean
  */
 global define boolean setPackages() ``{
     string base = Config["base"]:"";
@@ -653,18 +661,20 @@ global define string checkPackageAvail() ``{
  * @param integer id
  * @return boolean
  */
-global define boolean CopyPackages(integer id) ``{
-
-    string datadir  = meta[id,"productData", "datadir"]:"./suse";
+global boolean CopyPackages(integer id)
+{
+    string datadir  = meta[id,"productData", "datadir"]:"suse";
     foreach(map package, toCopy, ``{
 
 	Progress::Title(sformat(_("Copying %1"), package["name"]:"..." ));
 	Progress::NextStep();
 	string dir = Config["iso-directory"]:"" + "/" +  Config["name"]:"" + "/" +  datadir + "/" + package["arch"]:"";
 
-	if (size((list)SCR::Read(.target.dir, dir)) == nil )
+	if (SCR::Read(.target.dir, dir) == nil )
 	{
+            y2milestone("Creating dir: %1", dir);
 	    SCR::Execute(.target.mkdir , dir);
+            y2debug("dir contents: %1", (list)SCR::Read(.target.dir, dir));
 	}
 
 	string cpCmd = sformat("cp %1 %2", package["path"]:"", dir );
@@ -672,6 +682,12 @@ global define boolean CopyPackages(integer id) ``{
 	y2debug("%1", cpCmd);
 
 	any ret = SCR::Execute (.target.bash, cpCmd);
+        if (ret!=0)
+        {
+            Popup::Error(_("Error while copying packages. 
+Check the created directory for possible hints."));
+            return false;
+        }
 
     });
 
@@ -683,6 +699,8 @@ global define boolean CopyPackages(integer id) ``{
 global define boolean readControlFile(string filename) ``{
 
     import "Profile";
+    if (profile_parsed)
+        return true;
     if (!Profile::ReadXML(filename))
     {
         Report::Error(_("Error reading control file."));
@@ -692,6 +710,8 @@ global define boolean readControlFile(string filename) ``{
     Config["base"] = software["base"]:"";
     Config["addons"] = software["addons"]:[];
     Config["packages"] = software["packages"]:[];
+    y2debug("Config: %1", Config );
+    profile_parsed = true;
     return true;
 }
 
@@ -700,6 +720,7 @@ global define boolean readControlFile(string filename) ``{
  */
 global define void CDCreator() ``{
     configSetup();
+    AYRepository = Misc::SysconfigRead( .sysconfig.autoinstall.REPOSITORY, "/var/lib/autoinstall/repository/");
 }
 
 

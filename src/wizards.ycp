@@ -55,7 +55,8 @@ define symbol AddSequence() ``{
 	],
 	"isolinux": $[
 	   `abort	: `abort,
-	    `next	: "packagemanager"
+	    `next	: "packagemanager",
+            `autoyast   : "summary"
 	],
 	"packagemanager": $[
 	   `abort	: `abort,
