@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Apr  2 17:32:18 CEST 2004 - nashif@suse.de
+
+- License changed to GPL
+
+-------------------------------------------------------------------
 Thu Apr  1 04:59:50 CEST 2004 - nashif@suse.de
 
 - Copy control.xml in save space mode
