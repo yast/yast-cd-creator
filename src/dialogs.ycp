@@ -1,6 +1,6 @@
 /**
- * File:	include/CD-creator/dialogs.ycp
- * Package:	Configuration of CD-creator
+ * File:	include/cd-creator/dialogs.ycp
+ * Package:	Configuration of cd-creator
  * Summary:	Dialogs definitions
  * Authors:	Anas Nashif <nashif@suse.de>
  *
@@ -9,15 +9,14 @@
 
 {
 
-textdomain "CD-creator";
+textdomain "cd-creator";
 
 import "CDCreator";
 import "Wizard";
 
 import "Label";
 
-include "CD-creator/helps.ycp";
-include "CD-creator/routines.ycp";
+include "cd-creator/helps.ycp";
 
 /**
  * Configure1 dialog
@@ -34,7 +33,7 @@ global define symbol Configure1Dialog () ``{
     string pkgtype = CDCreator::Config["pkgtype"]:"autoyast";
 
     // Autoyast
-    string profile = CDCreator::Config["profile"]:"";       
+    string profile = CDCreator::Config["profile"]:"";
     boolean copy_profile = CDCreator::Config["copy_profile"]:false;
 
 
@@ -57,7 +56,7 @@ global define symbol Configure1Dialog () ``{
 				 )
 		       )
 	      );
-    
+
     term c2 =
 	`HBox(
 	      `HWeight(10, `Empty()),
@@ -104,14 +103,14 @@ global define symbol Configure1Dialog () ``{
 				    `Bottom(`PushButton(`id(`opendir), _("Select D&irectory")))
 				    )
 			      )
-			),	      
+			),
 	       `Frame(_("Packages"),
 		      `VBox(
 			    `RadioButtonGroup (
 					       `id (`pkg),
 					       v
 					       )
-			    )	       
+			    )
 		      )
 	       )
 	 );
@@ -120,20 +119,20 @@ global define symbol Configure1Dialog () ``{
 	    Label::BackButton(), Label::NextButton());
 
 
-    
+
     any ret = nil;
     symbol rb =`none;
     while(true) {
 
 	rb = (symbol) UI::QueryWidget (`id (`pkg), `CurrentButton );
-	
+
 	if (rb  == `autoyast)
 	{
 	    UI::ChangeWidget (`id(`plain_list_loc), `Enabled, false);
 	    UI::ChangeWidget (`id(`open_plain_list), `Enabled, false);
 	    UI::ChangeWidget (`id(`profile_loc), `Enabled, true);
 	    UI::ChangeWidget (`id(`open_profile), `Enabled, true);
-	    UI::ChangeWidget (`id(`copyprofile), `Enabled, true);	
+	    UI::ChangeWidget (`id(`copyprofile), `Enabled, true);
 	}
 	else if (rb == `plain )
 	{
@@ -141,37 +140,37 @@ global define symbol Configure1Dialog () ``{
 	    UI::ChangeWidget (`id(`open_profile), `Enabled, false);
 	    UI::ChangeWidget (`id(`copyprofile), `Enabled, false);
 	    UI::ChangeWidget (`id(`plain_list_loc), `Enabled, true);
-	    UI::ChangeWidget (`id(`open_plain_list), `Enabled, true);	    	    
+	    UI::ChangeWidget (`id(`open_plain_list), `Enabled, true);
 	}
 	else  {
 	    UI::ChangeWidget (`id(`plain_list_loc), `Enabled, false);
 	    UI::ChangeWidget (`id(`open_plain_list), `Enabled, false);
 	    UI::ChangeWidget (`id(`profile_loc), `Enabled, false);
 	    UI::ChangeWidget (`id(`open_profile), `Enabled, false);
-	    UI::ChangeWidget (`id(`copyprofile), `Enabled, false);	    
+	    UI::ChangeWidget (`id(`copyprofile), `Enabled, false);
 	}
-	
+
 	ret = UI::UserInput();
 
 
-	
+
 	/* abort? */
 	if(ret == `abort || ret == `cancel) {
-	    if(ReallyAbort()) break;
+	    if(CDCreator::ReallyAbort()) break;
 	    else continue;
 	}
         else if(ret == `next ) {
 
 	    source = (string)UI::QueryWidget(`id(`source), `Value);
 	    string name = (string)UI::QueryWidget(`id(`name), `Value);
-	    
+
 	    if (name == "")
 	    {
 		Report::Error(_("Invalid or empty field:
 Configuration Name."));
 		continue;
-	    }	    
-	    	    
+	    }
+
 	    if (source == "")
 	    {
 		Report::Error(_("Invalid or empty field:
@@ -182,9 +181,9 @@ Source Directory."));
 	    CDCreator::Config["source"] = (string)UI::QueryWidget(`id(`source), `Value);
 	    CDCreator::Config["old_name"] = CDCreator::Config["name"]:"";
 	    CDCreator::Config["name"] = name;
-	    
-	    
-	    
+
+
+
 	    if (rb  == `autoyast)
 	    {
 		CDCreator::Config["pkgtype"] = "autoyast";
@@ -194,15 +193,15 @@ Source Directory."));
 	    else if (rb == `plain )
 	    {
 		CDCreator::Config["pkgtype"] = "list";
-		CDCreator::Config["package-list"] = (string)UI::QueryWidget(`id(`plain_list_loc), `Value);	    	    
+		CDCreator::Config["package-list"] = (string)UI::QueryWidget(`id(`plain_list_loc), `Value);
 	    }
 	    else  {
 		CDCreator::Config["pkgtype"] = "package-manager";
 	    }
-	    
+
             break;
         }
-	else if ( ret == `back) 
+	else if ( ret == `back)
 	{
 	    break;
 	}
@@ -239,7 +238,7 @@ Source Directory."));
         }
     }
 
-    return ret;
+    return (symbol)ret;
 }
 
 /**
@@ -250,28 +249,28 @@ global define symbol Configure2Dialog () ``{
 
     /* CDCreator configure2 dialog caption */
     string caption = _("CD Creator Configuration");
-    
+
     string dirtree = CDCreator::Config["iso-directory"]:"";
     string result = CDCreator::Config["result"]:"iso";
     string db = CDCreator::Config["database"]:"original";
     string isofile_path = CDCreator::Config["isofile"]:"";
     boolean savespace = CDCreator::Config["savespace"]:false;
-    
+
     if (isofile_path == "")
     {
 	isofile_path = CDCreator::Config["name"]:"" + ".iso";
     }
 
     boolean keeptree = CDCreator::Config["keeptree"]:false;
-    
+
     /* CDCreator configure2 dialog contents */
     term contents =
 	`Top
 	(
 	 `VBox(
 	       `Frame(_("Package Database"),
-		      
-		      `RadioButtonGroup(`id(`pkgdb), 
+
+		      `RadioButtonGroup(`id(`pkgdb),
 					`VBox(
 					      `Left(`RadioButton(`id(`origdb), `opt (`notify), _("Use original Package &Database"), db == "original")),
 					      `Left(`RadioButton(`id(`createdb),`opt (`notify),  _("Create ne&w Packa&ge Database"), db == "new" ))
@@ -289,7 +288,7 @@ global define symbol Configure2Dialog () ``{
 						 )
 					   )
 				     ),
-			    `RadioButtonGroup(`id(`result), 
+			    `RadioButtonGroup(`id(`result),
 					      `VBox(
 						    `Left(`RadioButton(`id(`isofile),`opt (`notify), _("&Generate ISO image file"), result == "iso")),
 						    `HBox(
@@ -306,46 +305,46 @@ global define symbol Configure2Dialog () ``{
 							  ),
 						    `Left(`RadioButton(`id(`directory), `opt (`notify),  _("Create Direcotry &Tree only"), result == "tree"))
 						    )
-					      )			    
+					      )
 			    )
 
 		      ),
 	       `Frame(_("Other Options"),
 		      `VBox(
-			    `Left(`CheckBox(`id(`savespace), _("Copy only needed files to save space."), savespace))			    
+			    `Left(`CheckBox(`id(`savespace), _("Copy only needed files to save space."), savespace))
 			    )
 		      )
-	       
+
 	       )
 
 	 );
-				
+
     Wizard::SetContentsButtons(caption, contents, HELPS["c2"]:"",
 			       Label::BackButton(), Label::NextButton());
 
     any ret = nil;
     while(true) {
-	
+
 	symbol rb = (symbol)UI::QueryWidget(`id(`result), `CurrentButton);
 	if (rb == `isofile)
 	{
 	    UI::ChangeWidget(`id(`isofile_path), `Enabled, true);
 	    UI::ChangeWidget(`id(`keepdir), `Enabled, true);
-	    
+
 	}
 	else
 	{
 	    UI::ChangeWidget(`id(`isofile_path), `Enabled, false);
 	    UI::ChangeWidget(`id(`keepdir), `Enabled, false);
-	    
+
 	}
 
-	
+
 	ret = UI::UserInput();
 
 	/* abort? */
 	if(ret == `abort || ret == `cancel) {
-	    if(ReallyAbort()) break;
+	    if(CDCreator::ReallyAbort()) break;
 	    else continue;
 	}
 	else if (ret ==`open_dir)
@@ -372,20 +371,20 @@ global define symbol Configure2Dialog () ``{
 	    else
 		CDCreator::Config["database"] = "new" ;
 
-	    
+
 	    CDCreator::Config["iso-directory"] = UI::QueryWidget(`id(`dirtree), `Value);
-	    
+
 	    if (rb  == `isofile)
 	    {
 		CDCreator::Config["result"] = "iso";
 		CDCreator::Config["isofile"] = (string)UI::QueryWidget(`id(`isofile_path), `Value);
 		CDCreator::Config["keeptree"] = (boolean)UI::QueryWidget(`id(`keepdir), `Value);
-		
+
 	    }
-	    else 
+	    else
 	    {
 		CDCreator::Config["result"] = "tree";
-		
+
 	    }
 	    CDCreator::Config["savespace"] = (string)UI::QueryWidget(`id(`savespace), `Value);
             break;
@@ -396,16 +395,16 @@ global define symbol Configure2Dialog () ``{
         }
     }
 
-    return ret;
+    return (symbol)ret;
 }
 
-    
+
 /**
  * Configure3 dialog
  * @return dialog result
  */
 global define symbol isolinuxDialog () ``{
-    
+
     /* dialog caption */
     string caption = _("CD Creator Configuration");
 
@@ -414,7 +413,7 @@ global define symbol isolinuxDialog () ``{
 
     // FIXME: Manage files for other archs
     string bootconfig = "isolinux.cfg";
-    
+
     term contents =
 	`Top(
 	     `VBox(
@@ -424,8 +423,8 @@ global define symbol isolinuxDialog () ``{
 				  )
 		   )
 	     );
-				  
-				  
+
+
     Wizard::SetContentsButtons(caption, contents, HELPS["c3"]:"",
 			       Label::BackButton(), Label::NextButton());
 
@@ -434,7 +433,7 @@ global define symbol isolinuxDialog () ``{
 	ret = UI::UserInput();
 	/* abort? */
 	if(ret == `abort || ret == `cancel) {
-	    if(ReallyAbort()) break;
+	    if(CDCreator::ReallyAbort()) break;
 	    else continue;
 	}
 	else if(ret == `next) {
@@ -444,7 +443,7 @@ global define symbol isolinuxDialog () ``{
 		CDCreator::Config["bootconfig"] = isolinux_new;
 	    }
 
-	    
+
 	    break;
 	}
 	else if( ret == `back) {
@@ -454,9 +453,9 @@ global define symbol isolinuxDialog () ``{
             y2error("unexpected retcode: %1", ret);
             continue;
         }
-    }	
+    }
 
-    return ret;
+    return (symbol)ret;
 }
 
 
@@ -464,22 +463,22 @@ global define symbol isolinuxDialog () ``{
  * Select packages
  */
 global define symbol packageSelector() ``{
-   
-    
+
+
     string language = UI::GetLanguage(true);
-	
+
     /* dialog caption */
     string caption = _("Software Selection");
-	
+
     string helptext = _("<p>
 Select one of the following <b>base</b> selections and click <i>Detailed<i> to add
 more <b>add-on</b> selections and packages.
 </p>
 ");
-    Pkg::TargetFinish ();			
+    Pkg::TargetFinish ();
     Pkg::SourceStartManager(true);
 
-    
+
     Wizard::CreateDialog();
 
     Wizard::SetContents(caption,
@@ -488,7 +487,7 @@ more <b>add-on</b> selections and packages.
 
     list available_base_selections = Pkg::GetSelections( `available, "base" );
     y2milestone ("available_base_selections %1", available_base_selections);
-	
+
     list current_base_selections = Pkg::GetSelections( `selected, "base" );
     y2milestone ("current_base_selections %1", current_base_selections);
 
@@ -554,9 +553,9 @@ more <b>add-on</b> selections and packages.
     Wizard::SetContentsButtons(caption, contents, helptext,
 			       Label::BackButton(), Label::NextButton());
 
-		
+
     any ret = nil;
-	
+
     boolean selret = false;
     repeat
 	{
@@ -566,8 +565,8 @@ more <b>add-on</b> selections and packages.
 	    string base_selection = (string) UI::QueryWidget( `id(`baseconf),`CurrentButton );
 
 	    // Inform the package manager on `next about the new (only about a NEW) selection
-	    // or if the selection has changed			
-		    		
+	    // or if the selection has changed
+
 	    if (ret == `next)
 	    {
 		// set the new selection
@@ -576,27 +575,27 @@ more <b>add-on</b> selections and packages.
 		{
 		    foreach(string p, CDCreator::Config["packages"]:[], ``{
 			y2milestone("selecting package for installation: %1 -> %2", p, Pkg::PkgInstall(p));
-		    });		
+		    });
 		}
-	    }		
+	    }
 	    else if ( ret == `details )
 	    {
 		ret = `again;
-		    
+
 		Pkg::SetSelection( base_selection );
-		    
+
 		foreach(string addon, CDCreator::Config["addons"]:[], ``{
 		    Pkg::SetSelection( addon );
 		});
 
-		Pkg::ActivateSelections();	
+		Pkg::ActivateSelections();
 		if (size(CDCreator::Config["packages"]:[] ) > 0)
 		{
 		    foreach(string p,CDCreator::Config["packages"]:[] , ``{
 			y2milestone("selecting package for installation: %1 -> %2", p, Pkg::PkgInstall(p));
-		    });		
+		    });
 		}
-	
+
 		while ( ret == `again )
 		{
 		    ret = (symbol)WFM::CallFunction( "inst_packages", [ true, true ] );
@@ -604,13 +603,13 @@ more <b>add-on</b> selections and packages.
 		    if ( ret == `accept )
 			ret = `next;
 		}
-	    }		
+	    }
 	}  until ( ret == `next  || ret == `back);
-	
-    Pkg::ActivateSelections();    
+
+    Pkg::ActivateSelections();
     list allpacs = Pkg::GetPackages(`selected, true);
     y2milestone("All packages: %1 ( %2 )", allpacs, size(allpacs));
-	
+
     list seladd = [];
     list selbase = [];
     if ( ret != `back )
@@ -643,18 +642,18 @@ global define symbol ConfigSummary() ``{
     import "HTML";
 
 
-    	    
+
     string name = CDCreator::Config["name"]:"";
     string old_name = CDCreator::Config["old_name"]:"";
     if (haskey(CDCreator::Configs, old_name) && old_name != "")
     {
-		
-	CDCreator::Configs = filter(string k, map v, CDCreator::Configs, ``(k!=old_name));		
+
+	CDCreator::Configs = filter(string k, map v, CDCreator::Configs, ``(k!=old_name));
 	remove(CDCreator::Config, "old_name");
     }
     CDCreator::Configs[name] = CDCreator::Config;
 
-    
+
     // caption
     string caption = _("Configuration Summary");
     string html =  HTML::Heading(_("Package Source"));
@@ -664,10 +663,10 @@ global define symbol ConfigSummary() ``{
     html = html + HTML::Para(sformat("%1", size(Pkg::GetPackages(`selected, true))));
 
     html = html +  HTML::Heading(_("Output"));
-  
+
     html = html + HTML::Para(sformat(_("Creating directory tree in:<br><b> %1/%2 </b>"),
 				     CDCreator::Config["iso-directory"]:"", CDCreator::Config["name"]:"") );
-    
+
 
     term contents =
 	`RichText(html);

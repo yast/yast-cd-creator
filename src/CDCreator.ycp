@@ -1,19 +1,19 @@
 /**
  * File:	modules/CDCreator.ycp
- * Package:	Configuration of CD-creator
- * Summary:	Data for configuration of CD-creator, input and output functions.
+ * Package:	Configuration of cd-creator
+ * Summary:	Data for configuration of cd-creator, input and output functions.
  * Authors:	Anas Nashif <nashif@suse.de>
  *
  * $Id$
  *
- * Representation of the configuration of CD-creator.
+ * Representation of the configuration of cd-creator.
  * Input and output routines.
  */
 
 {
 
 module "CDCreator";
-textdomain "CD-creator";
+textdomain "cd-creator";
 
 import "Progress";
 import "Report";
@@ -50,7 +50,7 @@ global map Config = $[];
 global map Configs = $[];
 
 /* Configuration Repository */
-global string Rep = "/var/lib/YaST2/CD-creator";
+global string Rep = "/var/lib/YaST2/cd-creator";
 
 /* Configuration file */
 global string ConfigFile = Rep + "/cdcreator.xml";
@@ -83,9 +83,9 @@ global define boolean Modified() ``{
     return modified;
 };
 
-include "CD-creator/routines.ycp";
+include "cd-creator/routines.ycp";
 
-// Settings: Define all variables needed for configuration of CD-creator
+// Settings: Define all variables needed for configuration of cd-creator
 // TODO FIXME: Define all the variables necessary to hold
 // TODO FIXME: the configuration here (with the appropriate
 // TODO FIXME: description)
@@ -101,7 +101,7 @@ include "CD-creator/routines.ycp";
 //   boolean additional_parameter = true;
 
 /**
- * Read all CD-creator settings
+ * Read all cd-creator settings
  * @return true on success
  */
 global define boolean Read() ``{
@@ -173,13 +173,13 @@ global define list PrepareConfigs() ``{
 }
 
 /**
- * Write all CD-creator settings
+ * Write all cd-creator settings
  * @return true on success
  */
 global define boolean Write() ``{
 
     /* CDCreator read dialog caption */
-    string caption = _("Saving CD-creator Configuration");
+    string caption = _("Saving cd-creator Configuration");
 
     // TODO FIXME And set the right number of stages
     integer steps = 2;
@@ -234,7 +234,7 @@ global define boolean Write() ``{
 }
 
 /**
- * Get all CD-creator settings from the first parameter
+ * Get all cd-creator settings from the first parameter
  * (For use by autoinstallation.)
  * @param settings The YCP structure to be imported.
  * @return boolean True on success
@@ -246,7 +246,7 @@ global define boolean Import (map settings) ``{
 }
 
 /**
- * Dump the CD-creator settings to a single map
+ * Dump the cd-creator settings to a single map
  * (For use by autoinstallation.)
  * @return map Dumped settings (later acceptable by Import ())
  */
@@ -531,7 +531,7 @@ global define  string  getRpmPath(string package) ``{
 
     list tok = splitstring( package , " ");
 
-    string PkgLocation = Pkg::PkgLocation(tok[0]:"");
+    string PkgLocation =  Pkg::PkgLocation(tok[0]:"");
     y2debug("Location: %1", PkgLocation );
 
     string ArchLocation = tok[3]:"noarch" + "/" + PkgLocation;

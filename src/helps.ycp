@@ -1,6 +1,6 @@
 /**
- * File:	include/CD-creator/helps.ycp
- * Package:	Configuration of CD-creator
+ * File:	include/cd-creator/helps.ycp
+ * Package:	Configuration of cd-creator
  * Summary:	Help texts of all the dialogs
  * Authors:	Anas Nashif <nashif@suse.de>
  *
@@ -9,7 +9,7 @@
 
 {
 
-textdomain "CD-creator";
+textdomain "cd-creator";
 
 /**
  * All helps are here
@@ -17,7 +17,7 @@ textdomain "CD-creator";
 global map HELPS = $[
 
     /* Read dialog help 1/2 */
-    "read" : _("<p><b><big>Initializing CD-creator Configuration</big></b><br>
+    "read" : _("<p><b><big>Initializing cd-creator Configuration</big></b><br>
 Please wait...<br></p>
 ") +
 
@@ -27,7 +27,7 @@ Safely abort the configuration utility by pressing <b>Abort</b> now.</p>
 "),
 
     /* Write dialog help 1/2 */
-    "write" : _("<p><b><big>Saving CD-creator Configuration</big></b><br>
+    "write" : _("<p><b><big>Saving cd-creator Configuration</big></b><br>
 Please wait...<br></p>
 ") +
 
@@ -40,13 +40,13 @@ An additional dialog informs whether it is safe to do so.
 
     /* Summary dialog help 1/3 */
     "summary" : _("<p><b><big>CDCreator Configuration</big></b><br>
-Configure CD-creator here.<br></p>
+Configure cd-creator here.<br></p>
 ") +
 
     /* Summary dialog help 2/3 */
-    _("<p><b><big>Adding a CD-creator:</big></b><br>
-Choose CD-creator from the list of detected CD-creators.
-If your CD-creator was not autodetected, use <b>Other (not detected)</b>.
+    _("<p><b><big>Adding a cd-creator:</big></b><br>
+Choose cd-creator from the list of detected cd-creators.
+If your cd-creator was not autodetected, use <b>Other (not detected)</b>.
 Then press <b>Configure</b>.</p>
 ") +
 
@@ -58,17 +58,17 @@ the configuration opens.</p>
 
     /* Ovreview dialog help 1/3 */
     "overview" : _("<p><b><big>CDCreator Configuration Overview</big></b><br>
-Obtain an overview of installed CD-creators. Additionally
+Obtain an overview of installed cd-creators. Additionally
 edit their configuration.<br></p>
 ") +
 
     /* Ovreview dialog help 2/3 */
-_("<p><b><big>Adding a CD-creator:</big></b><br>
-Press <b>Add</b> to configure a CD-creator.</p>") +
+_("<p><b><big>Adding a cd-creator:</big></b><br>
+Press <b>Add</b> to configure a cd-creator.</p>") +
 
     /* Ovreview dialog help 3/3 */
 _("<p><b><big>Editing or Deleting:</big></b><br>
-Choose a CD-creator to change or remove.
+Choose a cd-creator to change or remove.
 Then press <b>Edit</b> or <b>Delete</b> as desired.</p>
 "),
 

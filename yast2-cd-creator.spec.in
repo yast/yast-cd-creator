@@ -21,9 +21,9 @@ Summary:	Configuration of CD-creator
 
 %files
 %defattr(-,root,root)
-%dir @yncludedir@/CD-creator
-@yncludedir@/CD-creator/*
-@clientdir@/CD-creator.ycp
+%dir @yncludedir@/cd-creator
+@yncludedir@/cd-creator/*
+@clientdir@/cd-creator.ycp
 @moduledir@/CDCreator.ycp
-@desktopdir@/CD-creator.desktop
+@desktopdir@/cd-creator.desktop
 %doc @docdir@

@@ -1,0 +1,57 @@
+/**
+ * File:	clients/cd-creator.ycp
+ * Package:	Configuration of cd-creator
+ * Summary:	Main file
+ * Authors:	Anas Nashif <nashif@suse.de>
+ *
+ * $Id$
+ *
+ * Main file for cd-creator configuration. Uses all other files.
+ */
+
+{
+
+/***
+ * <h3>Configuration of the cd-creator</h3>
+ */
+
+textdomain "cd-creator";
+
+include "commandline/commandline.ycp";
+include "cd-creator/wizards.ycp";
+
+map cmdline_description = $[
+    "id"	: "cd-creator",
+    // transltors: command line help text for the Xcd-creator module
+    "help"	: _("Configuration of cd-creator"),
+    "guihandler"        : ``(CDCreatorSequence()),
+    "initialize"        : ``(CDCreator::Read()),
+    "finish"            : ``(CDCreator::Write()),
+    "actions"           : $[
+    ],
+    "options"		: $[
+    ],
+    "mapping"		: $[
+    ]
+];
+
+/* The main () */
+y2milestone ("----------------------------------------");
+y2milestone ("CDCreator module started");
+
+
+/* main ui function */
+//boolean ret = false;
+//ret = CommandLineRun(cmdline_description);
+
+symbol ret = CDCreatorSequence();
+y2debug("ret=%1", ret);
+
+/* Finish */
+y2milestone("CDCreator module finished");
+y2milestone("----------------------------------------");
+
+return ret;
+
+/* EOF */
+}

@@ -1,7 +1,7 @@
 /**
- * File:	include/CD-creator/routines.ycp
- * Package:	Configuration of CD-creator
- * Summary:	Miscelanous functions for configuration of CD-creator.
+ * File:	include/cd-creator/routines.ycp
+ * Package:	Configuration of cd-creator
+ * Summary:	Miscelanous functions for configuration of cd-creator.
  * Authors:	Anas Nashif <nashif@suse.de>
  *
  * $Id$
@@ -9,7 +9,7 @@
 
 {
 
-textdomain "CD-creator";
+textdomain "cd-creator";
 import "Progress";
 import "Popup";
 

@@ -1,6 +1,6 @@
 /**
- * File:	include/CD-creator/complex.ycp
- * Package:	Configuration of CD-creator
+ * File:	include/cd-creator/complex.ycp
+ * Package:	Configuration of cd-creator
  * Summary:	Dialogs definitions
  * Authors:	Anas Nashif <nashif@suse.de>
  *
@@ -9,17 +9,18 @@
 
 {
 
-textdomain "CD-creator";
+textdomain "cd-creator";
 
 import "Wizard";
+import "Popup";
 import "Wizard_hw";
 
 import "CDCreator";
 
 import "Label";
 
-include "CD-creator/helps.ycp";
-include "CD-creator/routines.ycp";
+include "cd-creator/helps.ycp";
+//include "cd-creator/routines.ycp";
 
 /**
  * Return a modification status
@@ -35,7 +36,7 @@ global define boolean Modified() ``{
  */
 global define symbol ReadDialog() ``{
     Wizard::RestoreHelp(HELPS["read"]:"");
-    CDCreator::AbortFunction = ``{ return PollAbort();};
+    CDCreator::AbortFunction = ``{ return CDCreator::PollAbort();};
     boolean ret = CDCreator::Read();
     return ret ? `next : `abort;
 }
@@ -46,7 +47,7 @@ global define symbol ReadDialog() ``{
  */
 global define symbol WriteDialog() ``{
     Wizard::RestoreHelp(HELPS["write"]:"");
-    CDCreator::AbortFunction = ``{ return PollAbort();};
+    CDCreator::AbortFunction = ``{ return CDCreator::PollAbort();};
     boolean ret = CDCreator::Write();
     return ret ? `next : `abort;
 }
@@ -71,7 +72,6 @@ global define symbol SummaryDialog() ``{
 
     Wizard::SetContentsButtons(caption, contents, HELPS["summary"]:"",
         Label::BackButton(), Label::FinishButton());
-    
 
     any ret = nil;
     while(true) {
@@ -80,14 +80,14 @@ global define symbol SummaryDialog() ``{
 
 	/* abort? */
 	if(ret == `abort || ret == `cancel || ret == `back) {
-	    if(ReallyAbort()) break;
+	    if(CDCreator::ReallyAbort()) break;
 	    else continue;
 	}
         /* overview dialog */
         else if(ret == `edit_button) {
             ret = `overview;
             break;
-        }  
+        }
         else if(ret == `next) {
             break;
         }
@@ -97,7 +97,7 @@ global define symbol SummaryDialog() ``{
         }
     }
 
-    return ret;
+    return (symbol)ret;
 }
 
 /**
@@ -111,7 +111,6 @@ global define symbol OverviewDialog() ``{
 
     list overview = CDCreator::Overview();
 
-  
     term contents = Wizard_hw::ConfiguredContent(
 	/* Table header */
 	`header(_("Name"), _("Source")),
@@ -121,7 +120,7 @@ global define symbol OverviewDialog() ``{
 			   contents,
 			   `PushButton(`id(`create_button), _("Create ISO Image"))
 			   );
-    
+
     contents = Wizard_hw::SpacingAround(contents2, 1.5, 1.5, 1.0, 1.0);
 
     Wizard::SetContentsButtons(caption, contents, HELPS["overview"]:"",
@@ -138,11 +137,11 @@ global define symbol OverviewDialog() ``{
     while(true) {
 
 	ret = UI::UserInput();
-	
+
 	string current = (string) UI::QueryWidget(`id(`table), `CurrentItem );
 	/* abort? */
 	if(ret == `abort || ret == `cancel) {
-	    if(ReallyAbort()) break;
+	    if(CDCreator::ReallyAbort()) break;
 	    else continue;
 	}
         /* add */
@@ -152,7 +151,7 @@ global define symbol OverviewDialog() ``{
             break;
         }
         /* edit */
-        else if(ret == `edit_button) {	  
+        else if(ret == `edit_button) {
 	    CDCreator::Config = CDCreator::Configs[current]:$[];
             ret = `edit;
             break;
@@ -176,10 +175,9 @@ global define symbol OverviewDialog() ``{
 	    string current = (string) UI::QueryWidget(`id(`table), `CurrentItem );
 	    CDCreator::Config = CDCreator::Configs[current]:$[];
 	    CDCreator::EnableSource();
-	   
 	    ret = `create;
-	    break;            
-        }	
+	    break;
+        }
         else if (ret == `next || ret == `back) {
             break;
         }
@@ -189,7 +187,7 @@ global define symbol OverviewDialog() ``{
         }
     }
 
-    return ret;
+    return (symbol)ret;
 }
 
 
@@ -199,11 +197,11 @@ global define symbol OverviewDialog() ``{
  * Dialog for creating the skeleton and copying common data.
  */
 global define symbol TreeDialog () ``{
- 
+
     import "Progress";
 
 
-    
+
     string help = _("<P>
 Please wait while the directory structure for the new ISO image is being created.
 </P>
@@ -237,28 +235,28 @@ Please wait while the directory structure for the new ISO image is being created
 		  help );
 
 
-    if(Abort()) return false;
+    if(CDCreator::Abort()) return `abort;
     Progress::NextStage();
     CDCreator::CreateSkeleton();
 
-    
-    if(Abort()) return false;
+
+    if(CDCreator::Abort()) return `abort;
     Progress::NextStage();
     CDCreator::CopyMiscFiles();
-		
- 
+
+
     Progress::NextStage();
     CDCreator::CopyPackages();
-    
+
     integer i = 0;
- 
+
 
     Progress::Title(_("ISO image directory ready"));
     Progress::Finish();
 
     UI::ChangeWidget(`id(`next), `Enabled, true);
     UI::ChangeWidget(`id(`next), `Label, Label::NextButton());
-    
+
     any ret  = nil;
     repeat
 	{
@@ -288,7 +286,7 @@ global define symbol isoSummary() ``{
     html = html + HTML::Para(sformat("%1", size(Pkg::GetPackages(`selected, true))));
 
     html = html +  HTML::Heading(_("Missing Packages"));
-    if (size(CDCreator::missing_packages) > 0 ) {	
+    if (size(CDCreator::missing_packages) > 0 ) {
 	html = html + HTML::List(CDCreator::missing_packages);
     } else {
 	html = html + HTML::Para(_("None"));
@@ -323,7 +321,7 @@ global define symbol VerifyDialog()
     ``{
 
     import "Progress";
-    
+
 
     // caption
     string caption = _("Custom CDs");
@@ -337,14 +335,14 @@ Fix the problem and try again.</p>
 
     list progress_stages =
 	[
-	 _("Set up Package Source"),	 
+	 _("Set up Package Source"),
 	 _("Create Package List"),
 	 _("Verify Package Availability")
 	 ];
 
     list progress_descriptions =
 	[
-	 _("Configuring package source..."),	 
+	 _("Configuring package source..."),
 	 _("Creating package list..."),
 	 _("Verifying package availability...")
 	 ];
@@ -360,28 +358,28 @@ Fix the problem and try again.</p>
 
     boolean success = true;
 
-    
+
     Progress::NextStage();
     Pkg::TargetFinish ();
     string tmp = (string)SCR::Read( .target.tmpdir );
     SCR::Execute(.target.mkdir, tmp + "/tmproot");
     Pkg::TargetInit( tmp + "/tmproot" , true);
 
-    
+
     success =  CDCreator::EnableSource();
 
     Progress::NextStage();
     success = CDCreator::setPackages();
 
 
-    Progress::NextStage();    
+    Progress::NextStage();
     string error_msg = CDCreator::checkPackageAvail();
     if (error_msg != "")
     {
 	Popup::Error(error_msg);
     }
 
-    
+
     Progress::Finish();
 
     UI::ChangeWidget(`id(`next), `Enabled, true);
@@ -397,7 +395,7 @@ Fix the problem and try again.</p>
 }
 
 
-    
+
 
 
 
