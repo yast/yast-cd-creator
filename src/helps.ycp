@@ -77,11 +77,12 @@ Select an AutoYaST profile with the software configuration.
 ") +
     /* Configure1 dialog help 3/4 */
 _("<b>Package Manager</b><p>
-Use the package manager without any preselected packages. Note that all
-packages automatically computed during installation must be manually
-selected depending on the type of hardware and architecture for which you are
+Use the package manager without any preselected packages. All
+packages that would be automatically selected during installation must be
+selected manually based on the hardware and architecture for which you are
 creating this CD.
-</p>\n"),
+</p>
+"),
 
     /* Configure2 dialog help 1/2 */
     "sourceDialog" : _("<p><b><big>Select Package Sources</big></b><br>
