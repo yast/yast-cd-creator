@@ -24,8 +24,6 @@ Summary:	Configuration of CD-creator
 %dir @yncludedir@/CD-creator
 @yncludedir@/CD-creator/*
 @clientdir@/CD-creator.ycp
-@clientdir@/CD-creator_*.ycp
 @moduledir@/CDCreator.ycp
-@configdir@/CD-creator.y2cc
 @desktopdir@/CD-creator.desktop
 %doc @docdir@
