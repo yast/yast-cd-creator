@@ -13,12 +13,72 @@
 
     import "CDCreator";
     import "Wizard";
-    import "InstSource";
+    import "SourceManager";
     import "Report";
+    import "URL";
 
     import "Label";
 
     include "cd-creator/helps.ycp";
+
+    /**
+       Create a table item from a map as returned by the InstSrcManager agent.
+       @param source The map describing the source as returned form the agent.
+       @return An item suitable for addition to a Table.
+    */
+    term createTableItem( integer source ,
+            boolean selectable, 
+            string media_filter) {
+
+        // Source data
+	map sd = SourceManager::SourceData(source);
+	term item = `item();
+
+	map url = URL::Parse(sd["url"]:"");
+	if (media_filter == "" || url["scheme"]:"" == media_filter )
+	{
+	    if (selectable)
+		item = `item(
+			     `id( source ),
+			     "",
+			     // corresponds to the "Enable/Disable" button
+			     sd["enabled"]:true ? _("On") : _("Off"),
+			     sd["label"]:"unknown",
+			     sd["url"]:""
+			     );
+	    else
+		item = `item(
+			     `id( source ),
+			     // corresponds to the "Enable/Disable" button
+			     sd["enabled"]:true ? _("On") : _("Off"),
+			     sd["label"]:"unknown",
+			     sd["url"]:""
+			     );
+	}
+	return item;
+    }
+
+    /**
+     * Fill sources table with entries from the InstSrcManager agent.
+     * @return list list of items
+     */
+    list<term> fillSourceTable(list<integer> sources, boolean selectable, string media_filter) {
+	if (size(sources) == 0 )
+	    sources = Pkg::SourceGetCurrent ( false );
+
+        list<term> items = [];
+
+	items = maplist(integer source, sources, ``{
+                y2debug("working on source: %1", source);
+	        return(createTableItem( source , selectable, media_filter));
+	});
+        items  = filter(term i, items, ``(i[3]:""!=""));
+
+	return items;
+
+    }
+
+    
 
     /**
      * General configuration dialog
@@ -375,8 +435,8 @@
         /* dialog caption */
         string caption = _("Source Selection");
 
-        InstSource::ReadSources();
-        list sources = InstSource::fillSourceTable([], true , "dir");
+        SourceManager::ReadSources();
+        list sources = fillSourceTable([], true , "dir");
         y2debug("sources: %1", sources);
 
         term table =
@@ -407,7 +467,7 @@
 
 
         list<integer> selected_items = maplist(string url , CDCreator::Config["sources"]:[], ``{
-                integer i = InstSource::getSourceID(url);
+                integer i = SourceManager::getSourceId(url);
                 UI::ChangeWidget(`id(`table), `Item(i, 0) , _("X"));
                 return (i);
                 });
@@ -598,7 +658,7 @@ more <b>add-on</b> selections and packages.
 
 
         Popup::ShowFeedback(_("Reading data from Package Database..."), _("Please wait..."));
-        //CDCreator::enableSources();
+        CDCreator::enableSources();
         Pkg::SourceStartManager(true);
 
         Popup::ClearFeedback();
@@ -839,6 +899,8 @@ press Next to continue.
             ret = UI::UserInput();
         }  until (ret == `next || ret == `back || ret == `abort);
         Wizard::CloseDialog();
+        // Reenable Sources
+        CDCreator::RestoreOriginalStatus();
         return (symbol)ret;
     }
 

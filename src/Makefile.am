@@ -22,8 +22,7 @@ desktop_DATA =			\
 	cd-creator.desktop
 
 module_DATA =			\
-	CDCreator.ycp		\
-	InstSource.ycp
+	CDCreator.ycp	
 
 EXTRA_DIST = $(client_DATA) $(ynclude_DATA) $(module_DATA) $(desktop_DATA)
 

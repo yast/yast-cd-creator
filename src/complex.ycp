@@ -72,7 +72,7 @@
 
         term contents2 = `VBox(
                 contents,
-                `PushButton(`id(`create_button), _("Create ISO Image or Directory"))
+                `PushButton(`id(`create_button), _("Create ISO Image"))
                 );
 
         contents = Wizard_hw::SpacingAround(contents2, 1.5, 1.5, 1.0, 1.0);
@@ -197,9 +197,7 @@
         if(CDCreator::Abort()) return `abort;
         Progress::NextStage();
 
-        list old_enabled = Pkg::SourceGetCurrent(true);
-        integer id = old_enabled[0]:0;
-        if (!CDCreator::CreateSkeleton(id))
+        if (!CDCreator::CreateSkeleton())
         {
             Report::Error(_("Error while creating skeleton."));
             return `overview;
@@ -211,18 +209,21 @@
         if (CDCreator::Config["pkgtype"]:"" == "autoyast")
         {
             CDCreator::CopyMiscFiles();
-        } else {
-            if (CDCreator::Config["bootconfig"]:"" != "") 
+        }
+        else 
+        {
+           if (CDCreator::Config["bootconfig"]:"" != "")
             {
                 y2debug("bootconfig available");
-                SCR::Write(.target.string, 
-                        sformat("%1/boot/loader/isolinux.cfg", CDCreator::skel_root), 
+                SCR::Write(.target.string,
+                        sformat("%1/boot/loader/isolinux.cfg", CDCreator::skel_root),
                         CDCreator::Config["bootconfig"]:"" );
             }
+
         }
 
         Progress::NextStage();
-        if (!CDCreator::CopyPackages(id))
+        if (!CDCreator::CopyPackages())
         {
             return `overview;
         }
@@ -392,6 +393,11 @@ Fix the problem and try again.</p>
 
             return (symbol)ret;
         }
+
+
+
+
+
 
     /* EOF */
 }
