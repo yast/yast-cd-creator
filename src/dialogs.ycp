@@ -206,7 +206,6 @@
             isofile_path = CDCreator::Config["name"]:"" + ".iso";
         }
 
-        boolean keeptree = CDCreator::Config["keeptree"]:false;
 
         /* CDCreator configure2 dialog contents */
         term contents =
@@ -244,8 +243,7 @@
                                              `HBox(
                                                  `HWeight(2,`TextEntry(`id(`isofile_path), _("&ISO image file:"), isofile_path)),
                                                  `HWeight(1, `Empty())
-                                                 ),
-                                             `Left(`CheckBox(`id(`keepdir), _("Keep direct&ory tree"), keeptree))
+                                                 )
                                              )
                                          )
                                      ),
@@ -280,13 +278,11 @@
                              if (rb == `isofile)
                              {
                                  UI::ChangeWidget(`id(`isofile_path), `Enabled, true);
-                                 UI::ChangeWidget(`id(`keepdir), `Enabled, true);
 
                              }
                              else
                              {
                                  UI::ChangeWidget(`id(`isofile_path), `Enabled, false);
-                                 UI::ChangeWidget(`id(`keepdir), `Enabled, false);
 
                              }
 
@@ -347,7 +343,6 @@
                                  {
                                      CDCreator::Config["result"] = "iso";
                                      CDCreator::Config["isofile"] = (string)UI::QueryWidget(`id(`isofile_path), `Value);
-                                     CDCreator::Config["keeptree"] = (boolean)UI::QueryWidget(`id(`keepdir), `Value);
 
                                  }
                                  else

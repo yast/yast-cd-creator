@@ -233,7 +233,7 @@ Please wait while the directory structure for the new ISO image is being created
             {
                 if ( CDCreator::Config["result"]:"" == "iso")
                 {
-                    string isodir = CDCreator::Config["iso-directory"]:"" + "/" +  CDCreator::Config["name"]:"";
+                    string isodir = CDCreator::Config["iso-directory"]:"/tmp" + "/" +  CDCreator::Config["name"]:"tmp";
                     string isofile = CDCreator::Config["iso-directory"]:"" + "/" +  CDCreator::Config["isofile"]:"";
                     string pub = CDCreator::Config["publisher"]:"anon";
                     string prep = CDCreator::Config["preparer"]:"anon";

@@ -591,9 +591,13 @@ global define  string  getRpmPath( map package_data) ``{
 
 
 global define boolean verifyDestination() ``{
-    if ((integer)SCR::Read(.target.size, Config["iso-directory"]:"") > 0 ) { // its a file!
-        Report::Error(_("Destination directory exists or is a file."));
-        return false;
+    string isodir = Config["iso-directory"]:"" + "/"  + Config["name"]:"";
+    if ((integer)SCR::Read(.target.size, Config["iso-directory"]:"" + "/"  + Config["name"]:"") > 0 ) { // its a file!
+        if (Popup::YesNo(sformat(_("Destination directory exists or is a file.
+Remove directory %1?") , isodir)))
+            SCR::Execute(.target.bash, "rm -rf " + isodir );
+        else
+            return false;
     }
     return true;
 }
