@@ -72,7 +72,7 @@
 
         term contents2 = `VBox(
                 contents,
-                `PushButton(`id(`create_button), _("Create ISO Image Or Directory"))
+                `PushButton(`id(`create_button), _("Create ISO Image or Directory"))
                 );
 
         contents = Wizard_hw::SpacingAround(contents2, 1.5, 1.5, 1.0, 1.0);
