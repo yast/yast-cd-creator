@@ -383,10 +383,5 @@ Fix the problem and try again.</p>
             return (symbol)ret;
         }
 
-
-
-
-
-
     /* EOF */
 }

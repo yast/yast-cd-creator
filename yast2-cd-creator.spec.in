@@ -33,4 +33,4 @@ install -d $RPM_BUILD_ROOT/var/lib/YaST2/cd-creator
 %doc @docdir@
 %dir @ydatadir@/cd-creator
 @ydatadir@/cd-creator/*
-/var/lib/YaST2/cd-creator
+%dir /var/lib/YaST2/cd-creator
