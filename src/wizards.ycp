@@ -1,0 +1,199 @@
+/**
+ * File:	include/CD-creator/wizards.ycp
+ * Package:	Configuration of CD-creator
+ * Summary:	Wizards definitions
+ * Authors:	Anas Nashif <nashif@suse.de>
+ *
+ * $Id$
+ */
+
+{
+
+textdomain "CD-creator";
+
+import "Wizard";
+
+include "wizard/sequencer.ycp";
+
+include "CD-creator/complex.ycp";
+include "CD-creator/dialogs.ycp";
+
+/**
+ * Whole configuration of CD-creator
+ * @return sequence result
+ */
+global define symbol CDCreatorSequence() ``{
+
+    map aliases = $[
+	"main"	:   ``( MainSequence() ),
+	"read"  : [ ``( ReadDialog() ), true ],
+	
+    ];
+
+    map sequence = $[
+	"ws_start" : "read",
+	"read" : $[
+	    `abort	: `abort,
+	    `next	: "main"
+	],
+	"main" : $[
+	    `abort	: `abort,
+	    `next	: `next
+	]
+    ];
+
+    Wizard::CreateDialog();
+
+    any ret = WizardSequencer(aliases, sequence);
+
+    UI::CloseDialog();
+    return ret;
+}
+
+/**
+ * Whole configuration of CD-creator but without reading and writing.
+ * For use with autoinstallation.
+ * @return sequence result
+ */
+global define symbol CDCreatorAutoSequence() ``{
+    /* Initialization dialog caption */
+    string caption = _("CDCreator Configuration");
+    /* Initialization dialog contents */
+    term contents = `Label(_("Initializing..."));
+
+    Wizard::CreateDialog();
+    Wizard::SetContentsButtons(caption, contents, "",
+	    Label::BackButton(), Label::NextButton());
+
+    any ret = MainSequence();
+
+    UI::CloseDialog();
+    return ret;
+}
+
+/**
+ * Main workflow of the CD-creator configuration
+ * @return sequence result
+ */
+global define symbol MainSequence() ``{
+
+    
+    map aliases = $[	
+	"overview"	:   ``( OverviewDialog() ),
+	"configure"	: [ ``( AddSequence() ), true ],
+	"add"		: [ ``( AddSequence() ), true ],
+	"edit"		: [ ``( AddSequence() ), true ],
+	"write"		: [ ``( WriteDialog() ), true ],
+	"create"	: [ ``( CreateSequence() ), true ],
+	
+    ];
+   
+    map sequence = $[
+	"ws_start" : "overview",
+	"overview" : $[
+	    `abort	: `abort,
+	    `next	: "write",
+	    `add	: "add",
+	    `edit	: "edit",
+	    `create	: "create"
+	],
+	"configure" : $[
+	    `abort	: `abort,
+	    `next	: "overview",
+	],
+	"add" : $[
+	    `abort	: `abort,
+	    `next	: "overview",
+	],
+	"edit" : $[
+	    `abort	: `abort,
+	    `next	: "overview",
+	    ],
+	"write" : $[
+	    `abort	: `abort,
+	    `next	: `next
+	],
+	"create" : $[
+	    `abort	: `abort,
+	    `next	: "overview"
+	]
+    ];
+
+    any ret = WizardSequencer(aliases, sequence);
+
+    return ret;
+}
+
+/**
+ * Create a CD image tree and ISO image
+ * @return sequence result
+ */
+global define symbol CreateSequence() ``{
+   map aliases = $[
+	"verify"	: ``( VerifyDialog() ),	
+	"create"	: ``( TreeDialog() )
+    ];
+
+    
+    map sequence = $[
+	"ws_start" : "verify",
+	"verify" : $[
+	    `abort	: `abort,
+	    `next	: "create"
+	],
+	"create": $[
+	    `abort	: `abort,
+	    `next	: `next
+	]
+	
+    ];
+
+    return WizardSequencer( aliases, sequence );
+}
+
+/**
+ * Add a configuration of CD-creator
+ * @return sequence result
+ */
+global define symbol AddSequence() ``{
+
+    
+    map aliases = $[
+	"config1"	: ``( Configure1Dialog() ),
+	"config2"	: ``( Configure2Dialog() ),
+	"isolinux"	: ``( isolinuxDialog() ),
+	"packagemanager": ``( packageSelector() ),
+	"summary"	: ``( ConfigSummary() )
+    ];
+
+    
+    map sequence = $[
+	"ws_start" : "config1",
+	"config1" : $[
+	    `abort	: `abort,
+	    `next	: "config2"
+	],
+	"config2" : $[
+	    `abort	: `abort,
+	    `next	: "isolinux"
+	],
+	"isolinux": $[
+	   `abort	: `abort,
+	    `next	: "packagemanager"
+	],
+	"packagemanager": $[
+	   `abort	: `abort,
+	    `next	: "summary"
+	],
+	"summary" : $[
+		      `abort	: `abort,
+		      `next	: `next    
+		      ]
+	
+    ];
+
+    return WizardSequencer( aliases, sequence );
+}
+
+/* EOF */
+}

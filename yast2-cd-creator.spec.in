@@ -1,0 +1,31 @@
+@HEADER-COMMENT@
+# neededforbuild yast2-devel-packages
+
+@HEADER@
+Requires:	yast2
+
+BuildArchitectures:	noarch
+
+Summary:	Configuration of CD-creator
+
+%description
+-
+
+@PREP@
+
+@BUILD@
+
+@INSTALL@
+
+@CLEAN@
+
+%files
+%defattr(-,root,root)
+%dir @yncludedir@/CD-creator
+@yncludedir@/CD-creator/*
+@clientdir@/CD-creator.ycp
+@clientdir@/CD-creator_*.ycp
+@moduledir@/CDCreator.ycp
+@configdir@/CD-creator.y2cc
+@desktopdir@/CD-creator.desktop
+%doc @docdir@

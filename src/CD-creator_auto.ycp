@@ -1,0 +1,98 @@
+/**
+ * File:	clients/CD-creator_auto.ycp
+ * Package:	Configuration of CD-creator
+ * Summary:	Client for autoinstallation
+ * Authors:	Anas Nashif <nashif@suse.de>
+ *
+ * $Id$
+ *
+ * This is a client for autoinstallation. It takes its arguments,
+ * goes through the configuration and return the setting.
+ * Does not do any changes to the configuration.
+ */
+
+/**
+ * @param function to execute
+ * @param map/list of CD-creator settings
+ * @return map edited settings, Summary or boolean on success depending on called function
+ * @example map mm = $[ "FAIL_DELAY" : "77" ];
+ * @example map ret = WFM::CallFunction ("CD-creator_auto", [ "Summary", mm ]);
+ */
+
+{
+
+textdomain "CD-creator";
+
+y2milestone("----------------------------------------");
+y2milestone("CDCreator auto started");
+
+import "CDCreator";
+include "CD-creator/wizards.ycp";
+
+any ret = nil;
+string func = "";
+map param = $[];
+
+/* Check arguments */
+if(size(Args()) > 0 && is(Args(0), string)) {
+    func = WFM::Args(0);
+    if(size(Args()) > 1 && is(Args(1), map))
+	param = WFM::Args(1);
+}
+y2debug("func=%1", func);
+y2debug("param=%1", param);
+
+/* Create a summary*/
+if(func == "Summary") {
+    ret = select(CDCreator::Summary(), 0, "");
+}
+/* Reset configuration */
+else if (func == "Reset") {
+    CDCreator::Import($[]);
+    ret = $[];
+}
+/* Change configuration (run AutoSequence) */
+else if (func == "Change") {
+    ret = CDCreatorAutoSequence();
+}
+/* Import configuration */
+else if (func == "Import") {
+    ret = CDCreator::Import(param);
+}
+/* Return actual state */
+else if (func == "Export") {
+    ret = CDCreator::Export();
+}
+/* Return needed packages */
+else if (func == "Packages") {
+    ret = CDCreator::AutoPackages();
+}
+/* Read current state */
+else if (func == "Read") {
+    import "Progress";
+    Progress::off();
+    ret = CDCreator::Read();
+    Progress::on();
+}
+/* Write givven settings */
+else if (func == "Write") {
+    import "Progress";
+    Progress::off();
+    CDCreator::write_only = true;
+    ret = CDCreator::Write();
+    Progress::on();
+}
+/* Unknown function */
+else {
+    y2error("Unknown function: %1", func);
+    ret = false;
+}
+
+y2debug("ret=%1", ret);
+y2milestone("CDCreator auto finished");
+y2milestone("----------------------------------------");
+
+return ret;
+
+/* EOF */
+}

@@ -1,0 +1,405 @@
+/**
+ * File:	include/CD-creator/complex.ycp
+ * Package:	Configuration of CD-creator
+ * Summary:	Dialogs definitions
+ * Authors:	Anas Nashif <nashif@suse.de>
+ *
+ * $Id$
+ */
+
+{
+
+textdomain "CD-creator";
+
+import "Wizard";
+import "Wizard_hw";
+
+import "CDCreator";
+
+import "Label";
+
+include "CD-creator/helps.ycp";
+include "CD-creator/routines.ycp";
+
+/**
+ * Return a modification status
+ * @return true if data was modified
+ */
+global define boolean Modified() ``{
+    return CDCreator::Modified();
+}
+
+/**
+ * Read settings dialog
+ * @return `abort if aborted and `next otherwise
+ */
+global define symbol ReadDialog() ``{
+    Wizard::RestoreHelp(HELPS["read"]:"");
+    CDCreator::AbortFunction = ``{ return PollAbort();};
+    boolean ret = CDCreator::Read();
+    return ret ? `next : `abort;
+}
+
+/**
+ * Write settings dialog
+ * @return `abort if aborted and `next otherwise
+ */
+global define symbol WriteDialog() ``{
+    Wizard::RestoreHelp(HELPS["write"]:"");
+    CDCreator::AbortFunction = ``{ return PollAbort();};
+    boolean ret = CDCreator::Write();
+    return ret ? `next : `abort;
+}
+
+/**
+ * Summary dialog
+ * @return dialog result
+ */
+global define symbol SummaryDialog() ``{
+
+    /* CDCreator summary dialog caption */
+    string caption = _("CD Creator Configurations");
+
+    /* FIXME */
+    list summary = CDCreator::Summary();
+    list unconfigured = summary[1]:[];
+    string configured = summary[0]:"";
+
+    /* Frame label */
+    term contents = Wizard_hw::DetectedContent(_("Saved "),
+        unconfigured, false, configured);
+
+    Wizard::SetContentsButtons(caption, contents, HELPS["summary"]:"",
+        Label::BackButton(), Label::FinishButton());
+    
+
+    any ret = nil;
+    while(true) {
+
+	ret = UI::UserInput();
+
+	/* abort? */
+	if(ret == `abort || ret == `cancel || ret == `back) {
+	    if(ReallyAbort()) break;
+	    else continue;
+	}
+        /* overview dialog */
+        else if(ret == `edit_button) {
+            ret = `overview;
+            break;
+        }  
+        else if(ret == `next) {
+            break;
+        }
+        else {
+            y2error("unexpected retcode: %1", ret);
+            continue;
+        }
+    }
+
+    return ret;
+}
+
+/**
+ * Overview dialog
+ * @return dialog result
+ */
+global define symbol OverviewDialog() ``{
+
+    /* CDCreator overview dialog caption */
+    string caption = _("CD Creator Configuration Overview");
+
+    list overview = CDCreator::Overview();
+
+  
+    term contents = Wizard_hw::ConfiguredContent(
+	/* Table header */
+	`header(_("Name"), _("Source")),
+	overview, nil, nil, nil, nil );
+
+    term contents2 = `VBox(
+			   contents,
+			   `PushButton(`id(`create_button), _("Create ISO Image"))
+			   );
+    
+    contents = Wizard_hw::SpacingAround(contents2, 1.5, 1.5, 1.0, 1.0);
+
+    Wizard::SetContentsButtons(caption, contents, HELPS["overview"]:"",
+	    Label::BackButton(), Label::FinishButton());
+
+    if (size(overview) == 0 )
+    {
+	UI::ChangeWidget(`id(`edit_button), `Enabled, false);
+	UI::ChangeWidget(`id(`delete_button), `Enabled, false);
+	UI::ChangeWidget(`id(`create_button), `Enabled, false);
+    }
+
+    any ret = nil;
+    while(true) {
+
+	ret = UI::UserInput();
+	
+	string current = (string) UI::QueryWidget(`id(`table), `CurrentItem );
+	/* abort? */
+	if(ret == `abort || ret == `cancel) {
+	    if(ReallyAbort()) break;
+	    else continue;
+	}
+        /* add */
+        else if(ret == `add_button) {
+	    CDCreator::Config = $[];
+            ret = `add;
+            break;
+        }
+        /* edit */
+        else if(ret == `edit_button) {	  
+	    CDCreator::Config = CDCreator::Configs[current]:$[];
+            ret = `edit;
+            break;
+        }
+        /* delete */
+        else if(ret == `delete_button) {
+	    y2debug("Deleting: %1", current);
+	    CDCreator::Configs = filter(string k, map v, CDCreator::Configs, ``(k!=current));
+	    overview = CDCreator::Overview();
+	    UI::ChangeWidget(`id(`table), `Items, overview);
+	    if (size(overview) == 0 )
+	    {
+		UI::ChangeWidget(`id(`edit_button), `Enabled, false);
+		UI::ChangeWidget(`id(`delete_button), `Enabled, false);
+		UI::ChangeWidget(`id(`create_button), `Enabled, false);
+	    }
+            continue;
+        }
+        /* create */
+        else if(ret == `create_button) {
+	    string current = (string) UI::QueryWidget(`id(`table), `CurrentItem );
+	    CDCreator::Config = CDCreator::Configs[current]:$[];
+	    CDCreator::EnableSource();
+	   
+	    ret = `create;
+	    break;            
+        }	
+        else if (ret == `next || ret == `back) {
+            break;
+        }
+        else {
+            y2error("unexpected retcode: %1", ret);
+            continue;
+        }
+    }
+
+    return ret;
+}
+
+
+
+/**
+ * TreeDialog
+ * Dialog for creating the skeleton and copying common data.
+ */
+global define symbol TreeDialog () ``{
+ 
+    import "Progress";
+
+
+    
+    string help = _("<P>
+Please wait while the directory structure for the new ISO image is being created.
+</P>
+");
+    help = help + _("<p>Press <b>Next</b> to start creating the ISO file.</p>");
+
+
+
+    list progress_stages =
+	[
+	 _("Create skeleton with common files"),
+	 _("Copy additional and customized files"),
+	 _("Copy selected packages")
+	 ];
+
+    list progress_descriptions =
+	[
+
+	 _("Creating skeleton with essential files"),
+	 _("Copying additional and customized files to directory tree..."),
+	 _("Copying selected packages")
+	 ];
+
+
+    Progress::New(
+		  _("Creating ISO image directory"),
+		  "",     // progress_title
+		  size( progress_stages ) + size(CDCreator::toCopy) + 1,
+		  progress_stages,
+		  progress_descriptions,
+		  help );
+
+
+    if(Abort()) return false;
+    Progress::NextStage();
+    CDCreator::CreateSkeleton();
+
+    
+    if(Abort()) return false;
+    Progress::NextStage();
+    CDCreator::CopyMiscFiles();
+		
+ 
+    Progress::NextStage();
+    CDCreator::CopyPackages();
+    
+    integer i = 0;
+ 
+
+    Progress::Title(_("ISO image directory ready"));
+    Progress::Finish();
+
+    UI::ChangeWidget(`id(`next), `Enabled, true);
+    UI::ChangeWidget(`id(`next), `Label, Label::NextButton());
+    
+    any ret  = nil;
+    repeat
+	{
+	    ret = UI::UserInput();
+	    if (ret == `next)
+	    {
+		ret = `next;
+	    }
+
+	} until (ret == `next || ret == `back || ret == `abort);
+    return (symbol)ret;
+}
+
+/**
+ * ISO Summary
+ */
+
+global define symbol isoSummary() ``{
+    import "HTML";
+
+    // caption
+    string caption = _("ISO Summary");
+    string html =  HTML::Heading(_("Package Source"));
+    html = html + HTML::Para(CDCreator::Config["source"]:"");
+
+    html = html +  HTML::Heading(_("Packages"));
+    html = html + HTML::Para(sformat("%1", size(Pkg::GetPackages(`selected, true))));
+
+    html = html +  HTML::Heading(_("Missing Packages"));
+    if (size(CDCreator::missing_packages) > 0 ) {	
+	html = html + HTML::List(CDCreator::missing_packages);
+    } else {
+	html = html + HTML::Para(_("None"));
+    }
+
+    term contents =
+	`RichText(html);
+
+    string help_text = _("<p>Verify if the data in the summary box is correct then
+press Next to continue.</p>
+");
+
+    Wizard::SetContentsButtons ( caption,
+				 contents,
+				 help_text,
+				 Label::BackButton (),
+				 Label::NextButton ());
+    any ret = nil;
+    repeat
+	{
+	    ret = UI::UserInput();
+	}  until (ret == `next || ret == `back || ret == `abort);
+    return (symbol)ret;
+}
+
+/**
+ * VerifyDialog()
+ * Verify Dialog
+ *
+ */
+global define symbol VerifyDialog()
+    ``{
+
+    import "Progress";
+    
+
+    // caption
+    string caption = _("Custom CDs");
+
+    string help = _("<p>Please wait while the data and packages are verified...
+</p>
+");
+    help = help +  _("<p>If there is something missing, the process will be aborted.
+Fix the problem and try again.</p>
+");
+
+    list progress_stages =
+	[
+	 _("Set up Package Source"),	 
+	 _("Create Package List"),
+	 _("Verify Package Availability")
+	 ];
+
+    list progress_descriptions =
+	[
+	 _("Configuring package source..."),	 
+	 _("Creating package list..."),
+	 _("Verifying package availability...")
+	 ];
+
+    Progress::New(
+		  _("Verification of Data for ISO Image"),
+		  "",     // progress_title
+		  size( progress_stages ),
+		  progress_stages,
+		  progress_descriptions,
+		  help );
+
+
+    boolean success = true;
+
+    
+    Progress::NextStage();
+    Pkg::TargetFinish ();
+    string tmp = (string)SCR::Read( .target.tmpdir );
+    SCR::Execute(.target.mkdir, tmp + "/tmproot");
+    Pkg::TargetInit( tmp + "/tmproot" , true);
+
+    
+    success =  CDCreator::EnableSource();
+
+    Progress::NextStage();
+    success = CDCreator::setPackages();
+
+
+    Progress::NextStage();    
+    string error_msg = CDCreator::checkPackageAvail();
+    if (error_msg != "")
+    {
+	Popup::Error(error_msg);
+    }
+
+    
+    Progress::Finish();
+
+    UI::ChangeWidget(`id(`next), `Enabled, true);
+    UI::ChangeWidget(`id(`next), `Label, Label::NextButton());
+    UI::ChangeWidget(`id(`back), `Enabled, true);
+    any ret = nil;
+    repeat
+	{
+	    ret = UI::UserInput();
+	}  until (ret == `next || ret == `back || ret == `abort);
+
+    return (symbol)ret;
+}
+
+
+    
+
+
+
+/* EOF */
+}

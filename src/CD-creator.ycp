@@ -1,0 +1,70 @@
+/**
+ * File:	clients/CD-creator.ycp
+ * Package:	Configuration of CD-creator
+ * Summary:	Main file
+ * Authors:	Anas Nashif <nashif@suse.de>
+ *
+ * $Id$
+ *
+ * Main file for CD-creator configuration. Uses all other files.
+ */
+
+{
+
+/***
+ * <h3>Configuration of the CD-creator</h3>
+ */
+
+textdomain "CD-creator";
+
+include "commandline/commandline.ycp";
+
+map cmdline_description = $[
+    "id" 	: "CD-creator",
+    // transltors: command line help text for the XCD-creator module
+    "help"	: _("Configuration of CD-creator"),
+    "guihandler"        : ``(CDCreatorSequence()),
+    "initialize"        : ``(CDCreator::Read()),
+    "finish"            : ``(CDCreator::Write()),
+    "actions"           : $[
+	// FIXME TODO: fill the functionality description here
+    ],
+    "options"		: $[
+	// FIXME TODO: fill the option descriptions here
+    ],
+    "mapping"		: $[
+	// FIXME TODO: fill the mappings of actions and options here
+    ]
+];
+
+/* The main () */
+y2milestone ("----------------------------------------");
+y2milestone ("CDCreator module started");
+
+include "CD-creator/wizards.ycp";
+
+/* is this proposal or not? */
+boolean propose = false;
+list args = WFM::Args();
+if(size(args) > 0) {
+    if(is(WFM::Args(0), path) && WFM::Args(0) == .propose) {
+        y2milestone("Using PROPOSE mode");
+        propose = true;
+    }
+}
+
+/* main ui function */
+any ret = nil;
+
+if(propose) ret = CDCreatorAutoSequence();
+else ret = CommandLineRun(cmdline_description);
+y2debug("ret=%1", ret);
+
+/* Finish */
+y2milestone("CDCreator module finished");
+y2milestone("----------------------------------------");
+
+return ret;
+
+/* EOF */
+}
