@@ -56,7 +56,7 @@
                                         )
                                     )
                                 ),
-                            `Left(`CheckBox(`id(`copyprofile), _("Copy Profile to CD i&mage"), copy_profile))
+                            `Left(`CheckBox(`id(`copyprofile), _("Copy Profile to CD I&mage"), copy_profile))
                             )
                         )
                  );
@@ -66,7 +66,7 @@
                     // radio button label
                     `Left (`RadioButton (`id (`pkgmgr), `opt (`notify), _("Pac&kage Manager"), pkgtype == "package-manager")),
                     // radio button label
-                    `Left (`RadioButton (`id (`autoyast), `opt (`notify), _("&AutoYaST control file"), pkgtype == "autoyast")),
+                    `Left (`RadioButton (`id (`autoyast), `opt (`notify), _("&AutoYaST Control File"), pkgtype == "autoyast")),
                     c2
                   );
 
@@ -77,7 +77,7 @@
             `HVSquash
             (
              `VBox(
-                 `TextEntry(`id(`name), _("&Configuration name:"), name),
+                 `TextEntry(`id(`name), _("&Configuration Name:"), name),
                  `Frame(_("Packages"),
                      `VBox(
                          `RadioButtonGroup (
@@ -133,14 +133,15 @@
 
                 if (name == "")
                 {
-                    Report::Error(_("Fill in the name of the Configuration."));
+                    Report::Error(_("Enter the name of the configuration."));
                     continue;
                 }
                 if (haskey(CDCreator::Configs, name) &&
                         CDCreator::Config["name"]:"" != name)
                 {
-                    Report::Error(_("A Configuration with this name already exists,
-                                Select a new name."));
+                    Report::Error(_("A configuration with this name already exists,
+                                Select a new name.
+"));
                                 continue;
                 }
 
@@ -226,7 +227,7 @@
                      `VBox(
                          `VSquash(
                              `HBox(
-                                 `TextEntry(`id(`dirtree), _("&Path to generated directory tree:"), dirtree),
+                                 `TextEntry(`id(`dirtree), _("&Path to Generated Directory Tree:"), dirtree),
                                  `VBox(
                                      `VSpacing(),
                                      `Bottom(`PushButton(`id(`open_dir), _("&Select Directory")))
@@ -235,19 +236,19 @@
                              ),
                          `RadioButtonGroup(`id(`result),
                              `VBox(
-                                 `Left(`RadioButton(`id(`isofile),`opt (`notify), _("&Generate ISO image file"), result == "iso")),
+                                 `Left(`RadioButton(`id(`isofile),`opt (`notify), _("&Generate ISO Image File"), result == "iso")),
                                  `HBox(
                                      `HWeight(10, `Empty()),
                                      `HWeight(80,
                                          `VBox(
                                              `HBox(
-                                                 `HWeight(2,`TextEntry(`id(`isofile_path), _("&ISO image file:"), isofile_path)),
+                                                 `HWeight(2,`TextEntry(`id(`isofile_path), _("&ISO Image File:"), isofile_path)),
                                                  `HWeight(1, `Empty())
                                                  )
                                              )
                                          )
                                      ),
-                                 `Left(`RadioButton(`id(`directory), `opt (`notify),  _("Create Direcotry &Tree only"), result == "tree"))
+                                 `Left(`RadioButton(`id(`directory), `opt (`notify),  _("Create Directory &Tree Only"), result == "tree"))
                                  )
                              )
                              )
@@ -331,7 +332,7 @@
                                  string isodir = (string) UI::QueryWidget(`id(`dirtree), `Value);
                                  if (isodir == "")
                                  {
-                                     Report::Error(_("Path to generated directory tree missing!"));
+                                     Report::Error(_("Path to generated directory tree missing."));
                                      continue;
                                  }
                                  else
@@ -439,7 +440,7 @@
                 y2milestone("sources: %1", CDCreator::Config["sources"]:[] );
                 if (size(CDCreator::Config["sources"]:[])  == 0 )
                 {
-                    Report::Error(_("You have to select at least one source."));
+                    Report::Error(_("Select at least one source."));
                     continue;
                 }
                 CDCreator::checkProductDependency();
@@ -476,7 +477,7 @@
             `Top(
                     `VBox(
                         `MultiLineEdit(`id(`isolinux),
-                            sformat(_("File contents: %1"), bootconfig),
+                            sformat(_("File Contents: %1"), bootconfig),
                             isolinux
                             ),
                         `PushButton(`id(`loadfile), _("Load file"))
@@ -551,7 +552,7 @@
         Pkg::TargetFinish ();
 
 
-        Popup::ShowFeedback(_("Reading data from Package Database"), _("Please wait..."));
+        Popup::ShowFeedback(_("Reading data from Package Database..."), _("Please wait..."));
         Pkg::SourceStartManager(true);
         //CDCreator::enableSources();
 
@@ -771,9 +772,10 @@
         term contents =
             `RichText(summary);
 
-        string help_text = _("<p>Verify if the data in the summary box is correct then
+        string help_text = _("<p>Verify if the data in the summary is correct then
                 press Next to continue.</p>
-                ");
+                
+");
 
         Wizard::SetContentsButtons ( caption,
                 contents,

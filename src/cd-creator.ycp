@@ -22,7 +22,7 @@ include "cd-creator/wizards.ycp";
 map cmdline_description = $[
     "id"	: "cd-creator",
     // transltors: command line help text for the Xcd-creator module
-    "help"	: _("Configuration of cd-creator"),
+    "help"	: _("Configuration of CD creator"),
     "guihandler"        : ``(CDCreatorSequence()),
     "initialize"        : ``(CDCreator::Read()),
     "finish"            : ``(CDCreator::Write()),

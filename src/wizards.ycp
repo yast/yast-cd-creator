@@ -158,7 +158,7 @@ global define symbol MainSequence() ``{
 
 global define symbol CDCreatorAutoSequence() ``{
     /* Initialization dialog caption */
-    string caption = _("CDCreator Configuration");
+    string caption = _("CD Creator Configuration");
     /* Initialization dialog contents */
     term contents = `Label(_("Initializing..."));
 

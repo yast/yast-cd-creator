@@ -87,7 +87,7 @@ include "cd-creator/routines.ycp";
 global define boolean Read() ``{
 
     /* CDCreator read dialog caption */
-    string caption = _("Initializing CD-Creator Configuration");
+    string caption = _("Initializing CD Creator Configuration");
 
     integer steps = 1;
 
@@ -159,7 +159,7 @@ global define list PrepareConfigs() ``{
 global define boolean Write() ``{
 
     /* CDCreator read dialog caption */
-    string caption = _("Saving cd-creator Configuration");
+    string caption = _("Saving CD Creator Configuration");
 
     integer steps = 2;
 
@@ -684,7 +684,7 @@ global define boolean readControlFile(string filename) ``{
     import "Profile";
     if (!Profile::ReadXML(filename))
     {
-        Report::Error(_("Error reading control file"));
+        Report::Error(_("Error reading control file."));
         return false;
     }
     map software = Profile::current["install", "software"]:$[];
