@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Mar 29 17:28:14 CEST 2004 - nashif@suse.de
+
+- Added missing files 
+
+-------------------------------------------------------------------
 Tue Mar 16 23:41:01 CET 2004 - nashif@suse.de
 
 - Fixed reading autoyast files (#35862)
