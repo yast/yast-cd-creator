@@ -17,6 +17,8 @@ Summary:	Configuration of CD-creator
 
 @INSTALL@
 
+install -d $RPM_BUILD_ROOT/var/lib/YaST2/cd-creator
+
 @CLEAN@
 
 %files

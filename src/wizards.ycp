@@ -29,6 +29,7 @@ global define symbol AddSequence() ``{
 
 
     map aliases = $[
+	"source"	: ``( sourceDialog() ),
 	"config1"	: ``( Configure1Dialog() ),
 	"config2"	: ``( Configure2Dialog() ),
 	"isolinux"	: ``( isolinuxDialog() ),
@@ -39,9 +40,13 @@ global define symbol AddSequence() ``{
 
     map sequence = $[
 	"ws_start" : "config1",
-	"config1" : $[
+	"source" : $[
 	    `abort	: `abort,
 	    `next	: "config2"
+	],
+	"config1" : $[
+	    `abort	: `abort,
+	    `next	: "source"
 	],
 	"config2" : $[
 	    `abort	: `abort,

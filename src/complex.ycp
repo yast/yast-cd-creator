@@ -113,7 +113,7 @@ global define symbol OverviewDialog() ``{
 
     term contents = Wizard_hw::ConfiguredContent(
 	/* Table header */
-	`header(_("Name"), _("Source")),
+	`header(_("Name"), _("Product")),
 	overview, nil, nil, nil, nil );
 
     term contents2 = `VBox(
@@ -174,7 +174,7 @@ global define symbol OverviewDialog() ``{
         else if(ret == `create_button) {
 	    string current = (string) UI::QueryWidget(`id(`table), `CurrentItem );
 	    CDCreator::Config = CDCreator::Configs[current]:$[];
-	    CDCreator::EnableSource();
+	    // CDCreator::EnableSource();
 	    ret = `create;
 	    break;
         }
@@ -237,7 +237,9 @@ Please wait while the directory structure for the new ISO image is being created
 
     if(CDCreator::Abort()) return `abort;
     Progress::NextStage();
-    CDCreator::CreateSkeleton();
+
+    integer id = 0;
+    CDCreator::CreateSkeleton(id);
 
 
     if(CDCreator::Abort()) return `abort;
@@ -246,7 +248,7 @@ Please wait while the directory structure for the new ISO image is being created
 
 
     Progress::NextStage();
-    CDCreator::CopyPackages();
+    CDCreator::CopyPackages(id);
 
     integer i = 0;
 
@@ -361,6 +363,7 @@ Fix the problem and try again.</p>
 
     Progress::NextStage();
     Pkg::TargetFinish ();
+    
     string tmp = (string)SCR::Read( .target.tmpdir );
     SCR::Execute(.target.mkdir, tmp + "/tmproot");
     Pkg::TargetInit( tmp + "/tmproot" , true);
@@ -377,6 +380,7 @@ Fix the problem and try again.</p>
     if (error_msg != "")
     {
 	Popup::Error(error_msg);
+	return `back;
     }
 
 

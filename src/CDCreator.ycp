@@ -19,15 +19,11 @@ import "Progress";
 import "Report";
 import "Summary";
 import "XML";
+import "InstSource";
 
 
 
-
-global map productData = $[];
-
-global map mediaData = $[];
-
-global map sourceData = $[];
+global map meta = $[];
 
 global list missing_packages = [];
 
@@ -86,10 +82,7 @@ global define boolean Modified() ``{
 include "cd-creator/routines.ycp";
 
 // Settings: Define all variables needed for configuration of cd-creator
-// TODO FIXME: Define all the variables necessary to hold
-// TODO FIXME: the configuration here (with the appropriate
-// TODO FIXME: description)
-// TODO FIXME: For example:
+
 //   /**
 //    * List of the configured cards.
 //    */
@@ -135,7 +128,9 @@ global define boolean Read() ``{
 
     map c = $[];
     if (SCR::Read(.target.size, ConfigFile) != -1 )
+    {
 	c = XML::XMLToYCPFile(ConfigFile);
+    }
     list all = c["configurations"]:[];
     Configs = listmap (map i, all, ``{
 	string name = i["name"]:"";
@@ -187,7 +182,7 @@ global define boolean Write() ``{
     integer sl = 50;
     sleep(sl);
 
-    // TODO FIXME Names of real stages
+  
     // We do not set help text here, because it was set outside
     Progress::New(caption, " ", steps, [
 	    // translators: progress stage 1/2
@@ -211,10 +206,11 @@ global define boolean Write() ``{
 
     list c = PrepareConfigs();
     map xml = $["configurations": c];
+    
     boolean ret = XML::YCPToXMLFile(`cdcreator, xml, ConfigFile);
 
     // translators: error message
-    if(!ret) Report::Error (_("Cannot write settings."));
+    if(!ret) Report::Error (_("Error while writing settings."));
 
 
     // run SuSEconfig
@@ -273,29 +269,57 @@ global define list Summary() ``{
 global define list Overview() ``{
     y2milestone("Configs: %1", Configs);
     list overview = maplist(string name , map cfg, Configs , ``{
-	return(`item(`id(name), name, cfg["source"]:""));
+	return(`item(`id(name), name, cfg["product"]:""));
     });
     return overview;
 }
 
 
+/**
+ * Get media urls
+ * @param list list of ids
+ * @return list list of urls
+ */
+global define list getSourceURLs ( list ids ) ``{
+    list urls = maplist(integer i , ids, ``{
+	map media = Pkg::SourceMediaData(i);
 
+	return(media["url"]:"");
+    });
+
+    return urls;
+}
+
+
+/**
+ * get path to directory source
+ * @param string url
+ * @return string path
+ */
+global define string getSourceDir(string url) ``{
+    import "URL";
+    map urlsegs = URL::Parse(url);
+    return(urlsegs["path"]:"");
+}
 /**
  * Return contents of isolinux.cfg from the given source
  * @return string with contents of file.
  */
 global define string Readisolinux() ``{
 
-    string isolinux = Config["bootconfig"]:"";
-    if (isolinux != "") {
-		return isolinux;
-	}
+    string bootconfig = Config["bootconfig"]:"";
+    if (bootconfig != "")
+    {
+	return bootconfig;
+    }
 
-    string isolinux_path = sformat("%1/boot/loader/isolinux.cfg", Config["source"]:"" );
-    if (SCR::Read(.target.size, isolinux_path) != -1 )
-	isolinux = (string)SCR::Read(.target.string, isolinux_path );
-
-    return isolinux;
+    // FIXME
+    string dir = getSourceDir(Config["sources", 0]:"" );
+    
+    string bootconfig_path = sformat("%1/boot/loader/isolinux.cfg", dir );
+    if (SCR::Read(.target.size, bootconfig_path) != -1 )
+	bootconfig = (string)SCR::Read(.target.string, bootconfig_path );
+    return bootconfig;
 }
 
 /**
@@ -322,9 +346,9 @@ global define void configSetup()
 
 /**
  * Create Skeleton
- *
+ * @return boolean true on success
  */
-global define boolean  CreateSkeleton () ``{
+global define boolean  CreateSkeleton (integer id) ``{
 
     list commands = [];
     integer ret = 0;
@@ -335,9 +359,9 @@ global define boolean  CreateSkeleton () ``{
     skel_root = sformat("%1/%2", Config["iso-directory"]:"", Config["name"]:"");
     SCR::Execute(.target.mkdir, skel_root);
 
-
-    string descrDir = productData["descrdir"]:"suse/setup/descr";
-    string dataDir  = productData["datadir"]:"./suse";
+    map this_source = meta[id]:$[];
+    string descrDir = this_source["productData","descrdir"]:"suse/setup/descr";
+    string dataDir  = this_source["productData", "datadir"]:"./suse";
 
     success = (boolean)SCR::Execute(.target.mkdir, sformat("%1/%2", skel_root, dataDir));
     if (!success)
@@ -410,6 +434,7 @@ global define boolean  CreateSkeleton () ``{
 /**
  * CopyMiscFiles
  * Copy other files to directory tree
+ * @return boolean true on success
  */
 global define boolean CopyMiscFiles() ``{
 
@@ -431,24 +456,26 @@ global define boolean CopyMiscFiles() ``{
  * @return true on success
  */
 global define boolean EnableSource() ``{
-
-    string dir = Config["source"]:"";
+    
+    
+    list<integer> sources = maplist(string url , CDCreator::Config["sources"]:[], ``{
+	integer i = InstSource::getSourceID(url);	    	
+	return (i);
+    });
+      
     list ids = Pkg::SourceStartCache(true);
     if (size(ids) == 0 )
 	return false;
-
-    list sources = [];
-    foreach(integer i , ids, ``{
-	map media = Pkg::SourceMediaData(i);
-	string tmp =  sformat("dir://%1", dir);
-	if (media["url"]:"" == tmp )
-	{
-	    productData = Pkg::SourceProductData(i);
-	    mediaData = Pkg::SourceMediaData(i);
-	    sourceData	= Pkg::SourceGeneralData(i);
-	}
+        
+    foreach(integer i , sources, ``{
+	map<string, map> m = $[];
+	m["productData"] = Pkg::SourceProductData(i);
+	m["mediaData"] = Pkg::SourceMediaData(i);
+	m["sourceData"]	= Pkg::SourceGeneralData(i);
+	meta[i] = m;	
     });
 
+    y2milestone("meta: %1", meta);
     return true;
 }
 
@@ -474,6 +501,70 @@ global define list GetDirSources(string source) ``{
     });
 
     return sources;
+}
+
+
+/**
+ * Check Product dependencies and determine product to be used for
+ * booting. Also determine what is the main product.
+ *
+ */
+global define list checkProductDependency() ``{
+
+    list sources =  maplist(string url , Config["sources"]:[], ``{
+	integer i = InstSource::getSourceID(url);	    
+	UI::ChangeWidget(`id(`table), `Item(i, 0) , _("X"));
+	return (i);
+    });
+
+    list products = maplist(integer id , sources, ``{
+	map generalData = Pkg::SourceGeneralData( id );
+	map productData = Pkg::SourceProductData( id );
+
+	map result = $[];
+
+	result["baseproduct"] = sformat("%1-%2", productData["baseproductname"]:"", productData["baseproductversion"]:"" );
+	result["vendor"] = productData["vendor"]:"";
+	result["product"] = sformat("%1-%2", productData["productname"]:"", productData["productversion"]:"" );
+	result["is_service_pack"] = ( issubstring(productData["productname"]:"", "Service-Pack") );
+	result["id"] = id;
+	return(result);
+    });
+
+    list final = maplist( map product, products, ``{
+	list based_on_this = filter(map p, products, ``(product["product"]:"" == p["baseproduct"]:""));
+	list ids = maplist(map p, based_on_this, ``(p["id"]:-1));
+	y2milestone("Products based on %1: %2", product["product"]:"", based_on_this );
+	product["dependents"] = ids;
+	return(product);
+    });
+
+
+    map installedProduct = (map)select( (list)filter(map p, final, ``(size(p["dependents"]:[]) == 0
+								      && !p["is_service_pack"]:false
+								      && issubstring(p["vendor"]:"", "SuSE"))) , 0 , $[]);;
+    Config["product"] = installedProduct["product"]:""; 
+	    
+    y2milestone("all: %1", final);
+    return final;
+
+}
+
+
+global define void enableSources()``{
+
+
+    list old_enabled = Pkg::SourceGetCurrent(true);
+    foreach(integer id , old_enabled, ``{
+		Pkg::SourceFinish(id);
+	});
+    list sources = Config["source_ids"]:[];
+
+    foreach(integer id , sources, ``{
+		Pkg::SourceSetEnabled(id, true);
+	});
+    return;
+
 }
 
 
@@ -525,49 +616,55 @@ global define boolean setPackages() ``{
   * get physical rpm location
   * @return: package path
   */
-global define  string  getRpmPath(string package) ``{
+global define  string  getRpmPath( map package_data) ``{
 
-    string dataDir = productData["datadir"]:"./suse";
-
-    list tok = splitstring( package , " ");
-
-    string PkgLocation =  Pkg::PkgLocation(tok[0]:"");
-    y2debug("Location: %1", PkgLocation );
-
-    string ArchLocation = tok[3]:"noarch" + "/" + PkgLocation;
-    string FullPath =  Config["source"]:"" + "/" + dataDir + "/" + ArchLocation;
-
+    import "URL";
+        
+    integer srcid = package_data["srcid"]:-1;    
+    
+    map s = meta[srcid]:$[];
+    map pd = s["productData"]:$[];
+    map md = s["mediaData"]:$[];
+    string dataDir = pd["datadir"]:"./suse";
+    string url = md["url"]:"";
+    
+    map urlmap = URL::Parse(url);
+  
+    string ArchLocation =  sformat("%1/%2", package_data["arch"]:"noarch", package_data["location"]:"norpm.rpm");
+    string FullPath =  urlmap["path"]:"" + "/" + dataDir + "/" + ArchLocation;
     return FullPath;
 };
 
 
 /**
  * Check if selected packages are available
+ * @return string error message
  */
 global define string checkPackageAvail() ``{
 
-    string descrDir	= productData["descrdir"]:"suse/setup/descr";
-    string dataDir	= productData["datadir"]:"./suse";
     string error_msg = "";
 
     Progress::Title(_("Checking for package availability..."));
 
-    list selectedPackages = Pkg::GetPackages (`selected , false);
+    list selectedPackages = Pkg::GetPackages (`selected , true);
 
     list failed = [];
     toCopy = [];
     foreach(string package, selectedPackages, ``{
 
-	list tok = splitstring( package , " ");
-	string FullPath = getRpmPath(package);
+	map package_data = Pkg::PkgProperties(package);
+	string FullPath = getRpmPath(package_data);
+	
 	y2debug("Checking for package: %1 ",  FullPath);
 	integer package_size = (integer)SCR::Read(.target.size, FullPath);
 	if (package_size == -1 )
 	{
 	    failed = add (failed, FullPath);
 	}
-	else {
-	    toCopy = add(toCopy, $["path": FullPath, "name": tok[0]:"", "arch": tok[3]:"" ]);
+	else
+	{
+	    string arch =  package_data["arch"]:"noarch";
+	    toCopy = add(toCopy, $["path": FullPath, "name": package, "arch":  arch ]);
 	}
     });
     CDCreator::missing_packages = failed;
@@ -588,9 +685,9 @@ global define string checkPackageAvail() ``{
  * CopyPackages()
  * Copy selected package to target tree
  */
-global define boolean CopyPackages() ``{
+global define boolean CopyPackages(integer id) ``{
 
-    string datadir	= productData["datadir"]:"./suse";
+    string datadir  = meta[id,"productData", "datadir"]:"./suse";
     foreach(map package, toCopy, ``{
 
 	Progress::Title(sformat(_("Copying %1"), package["name"]:"..." ));
@@ -611,9 +708,7 @@ global define boolean CopyPackages() ``{
     });
 
     return true;
-
 }
-
 
 
 /**
