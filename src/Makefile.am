@@ -3,9 +3,7 @@
 yncludedir = @yncludedir@/CD-creator
 
 client_DATA =			\
-	CD-creator.ycp		\
-	CD-creator_auto.ycp	\
-	CD-creator_proposal.ycp
+	CD-creator.ycp		
 
 ynclude_DATA =			\
 	helps.ycp		\
@@ -24,3 +22,9 @@ module_DATA =			\
 EXTRA_DIST = $(client_DATA) $(ynclude_DATA) $(module_DATA) $(desktop_DATA)
 
 include $(top_srcdir)/Makefile.am.common
+
+symlinks:
+	test -L CD-creator || ln -sf . CD-creator
+
+ycpchook = symlinks
+
