@@ -1,5 +1,7 @@
 # Makefile.am for cd-creator/src
 #
+#
+SUBDIRS = data
 
 yncludedir = @yncludedir@/cd-creator
 

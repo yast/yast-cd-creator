@@ -161,6 +161,7 @@
                     CDCreator::Config["pkgtype"] = "package-manager";
                 }
                 CDCreator::modified = true;
+                CDCreator::profile_parsed = false;
                 break;
             }
             else if ( ret == `back)
@@ -169,7 +170,7 @@
             }
             else if (ret ==`open_profile)
             {
-                any new_file = UI::AskForExistingFile( "" , "*", _("Select File"));
+                any new_file = UI::AskForExistingFile( CDCreator::AYRepository , "*", _("Select File"));
                 if (new_file != nil)
                 {
                     UI::ChangeWidget(`id(`profile_loc), `Value, (string)new_file);
@@ -529,9 +530,53 @@
             }
         }
 
+        if (CDCreator::Config["profile"]:""!="" && ret == `next)
+            return `autoyast;
         return (symbol)ret;
     }
 
+    symbol autoyastPackages ()
+    {
+        string base_selection = "";
+        //Pkg::TargetFinish ();
+        Popup::ShowFeedback(_("Reading data from Package Database..."), _("Please wait..."));
+
+        Pkg::TargetFinish ();
+        string tmp = (string)SCR::Read( .target.tmpdir );
+        SCR::Execute(.target.mkdir, tmp + "/tmproot");
+        Pkg::TargetInit( tmp + "/tmproot" , true);
+        boolean  success =  CDCreator::EnableSource();
+
+        // Pkg::SourceStartManager(true);
+
+        if (CDCreator::Config["profile"]:""!= "" && ! CDCreator::profile_parsed)
+        {
+            if(!CDCreator::readControlFile(CDCreator::Config["profile"]:""))
+                return `overview;
+            // set the new selection
+            y2debug("Config: %1", CDCreator::Config );
+            boolean pkgret = Pkg::SetSelection( CDCreator::Config["base"]:"" );
+            Pkg::ActivateSelections();
+
+
+            foreach(string addon, CDCreator::Config["addons"]:[], ``{
+                    Pkg::SetSelection( addon );
+                    });
+
+            if (size(CDCreator::Config["packages"]:[] ) > 0)
+            {
+                foreach(string p, CDCreator::Config["packages"]:[], ``{
+                        y2debug("selecting package for installation: %1 -> %2", p, Pkg::PkgInstall(p));
+                        });
+            }
+            Pkg::ActivateSelections();
+            Pkg::PkgSolve(true);
+            list allpacs = Pkg::GetPackages(`selected, true);
+            y2milestone("All packages: %1 ( %2 )", allpacs, size(allpacs));
+        }
+        Popup::ClearFeedback();
+        return `next;
+    }
 
     /**
      * Select packages
@@ -539,27 +584,30 @@
      */
     define symbol packageSelector() ``{
 
+        any ret = nil;
         string language = UI::GetLanguage(true);
 
         /* dialog caption */
         string caption = _("Software Selection");
 
         string helptext = _("<p>
-                Select one of the following <b>base</b> selections and click <i>Detailed<i> to add
-                more <b>add-on</b> selections and packages.
-                </p>
-                ");
+Select one of the following <b>base</b> selections and click <i>Detailed<i> to add
+more <b>add-on</b> selections and packages.
+</p>");
         Pkg::TargetFinish ();
 
 
         Popup::ShowFeedback(_("Reading data from Package Database..."), _("Please wait..."));
-        Pkg::SourceStartManager(true);
         //CDCreator::enableSources();
+        Pkg::SourceStartManager(true);
 
         Popup::ClearFeedback();
 
+
         Wizard::CreateDialog();
         Wizard::SetDesktopIcon("cd-creator");
+
+        string base_selection = "";
 
         Wizard::SetContents(caption,
                 `HVCenter(`Label(_("Reading package database..."))),
@@ -595,13 +643,6 @@
                 sorted_base_selections[order] = [selection, selection_data["summary"]:("'"+selection+"'")];
                 }
                 });
-
-
-        if (CDCreator::Config["profile"]:""!= "")
-        {
-            if(!CDCreator::readControlFile(CDCreator::Config["profile"]:""))
-                return `overview;
-        }
         // construct display box in order
         boolean selected = false;
         foreach(string  order, list data, sorted_base_selections,
@@ -647,7 +688,6 @@
                 Label::BackButton(), Label::NextButton());
 
 
-        any ret = nil;
 
         boolean selret = false;
         repeat
@@ -655,7 +695,7 @@
             ret = Wizard::UserInput();
 
             // get the newly selected base configuration
-            string base_selection = (string) UI::QueryWidget( `id(`baseconf),`CurrentButton );
+            base_selection = (string) UI::QueryWidget( `id(`baseconf),`CurrentButton );
 
             // Inform the package manager on `next about the new (only about a NEW) selection
             // or if the selection has changed
@@ -667,7 +707,7 @@
                 if (size(CDCreator::Config["packages"]:[] ) > 0)
                 {
                     foreach(string p, CDCreator::Config["packages"]:[], ``{
-                            y2milestone("selecting package for installation: %1 -> %2", p, Pkg::PkgInstall(p));
+                            y2debug("selecting package for installation: %1 -> %2", p, Pkg::PkgInstall(p));
                             });
                 }
             }
@@ -739,6 +779,18 @@
     define symbol ConfigSummary() ``{
         import "Summary";
 
+        Wizard::CreateDialog();
+        Wizard::SetDesktopIcon("cd-creator");
+        string caption = _("Configuration Summary");
+        Wizard::SetContents( caption,
+                `Empty(),
+                "",
+                false,
+                false);
+
+        if (CDCreator::Config["profile"]:""!="")
+	    autoyastPackages();
+
         string name = CDCreator::Config["name"]:"";
         string old_name = CDCreator::Config["old_name"]:"";
         if (haskey(CDCreator::Configs, old_name) && old_name != "")
@@ -750,7 +802,6 @@
         CDCreator::Configs[name] = CDCreator::Config;
 
         // caption
-        string caption = _("Configuration Summary");
         string summary = "";
         summary = Summary::AddHeader(summary, _("Package Source") );
         summary = Summary::OpenList(summary);
@@ -774,9 +825,8 @@
             `RichText(summary);
 
         string help_text = _("<p>Verify if the data in the summary is correct then
-                press Next to continue.</p>
-                
-");
+press Next to continue.
+</p>");
 
         Wizard::SetContentsButtons ( caption,
                 contents,
@@ -788,6 +838,7 @@
         {
             ret = UI::UserInput();
         }  until (ret == `next || ret == `back || ret == `abort);
+        Wizard::CloseDialog();
         return (symbol)ret;
     }
 

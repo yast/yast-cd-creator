@@ -31,3 +31,5 @@ install -d $RPM_BUILD_ROOT/var/lib/YaST2/cd-creator
 @desktopdir@/cd-creator.desktop
 /usr/bin/y2mkiso
 %doc @docdir@
+%dir @ydatadir@/cd-creator
+@ydatadir@/cd-creator/*

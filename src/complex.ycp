@@ -210,7 +210,6 @@
         Progress::NextStage();
         CDCreator::CopyMiscFiles();
 
-
         Progress::NextStage();
         if (!CDCreator::CopyPackages(id))
         {
@@ -278,8 +277,8 @@
             `RichText(html);
 
         string help_text = _("<p>Verify if the data in the summary box is correct then
-                press Finish to return to main dialog.</p>
-                ");
+press Finish to return to main dialog.</p>
+");
 
         Wizard::SetContentsButtons ( caption,
                 contents,
@@ -312,7 +311,7 @@
                     </p>
                     ");
             help = help +  _("<p>If there is something missing, the process will be aborted.
-                    Fix the problem and try again.</p>
+Fix the problem and try again.</p>
                     ");
 
             list<string> progress_stages =

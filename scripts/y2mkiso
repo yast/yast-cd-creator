@@ -26,7 +26,6 @@ echo "all files are available"
 echo
 echo "$0 <directory> <iso file name>"
 
-
 }
 if [ -z "$SOURCE" -o -z "$DEST" ]; then
     echo "Missing parameters."
