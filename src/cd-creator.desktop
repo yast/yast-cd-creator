@@ -14,7 +14,7 @@ X-SuSE-YaST-RootOnly=true
 X-SuSE-YaST-AutoInst=
 X-SuSE-YaST-Geometry=
 X-SuSE-YaST-SortKey=
-X-SuSE-YaST-AutoinstResource= cd-creator
+X-SuSE-YaST-AutoInstResource= cd-creator
 
 Icon=cd-creator
 Exec=/sbin/yast2 cd-creator 
