@@ -223,7 +223,7 @@
         Progress::Title(_("ISO image directory ready"));
         Progress::Finish();
 
-        UI::ChangeWidget(`id(`next), `Enabled, true);
+        Wizard::EnableNextButton();
         UI::ChangeWidget(`id(`next), `Label, Label::NextButton());
 
         any ret  = nil;
@@ -371,9 +371,9 @@
 
             Progress::Finish();
 
-            UI::ChangeWidget(`id(`next), `Enabled, true);
+            Wizard::EnableNextButton();
             UI::ChangeWidget(`id(`next), `Label, Label::NextButton());
-            UI::ChangeWidget(`id(`back), `Enabled, true);
+            Wizard::EnableBackButton();
             any ret = nil;
             repeat
             {
