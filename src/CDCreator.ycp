@@ -669,6 +669,22 @@ global define boolean CopyPackages(integer id) ``{
 }
 
 
+
+global define boolean readControlFile(string filename) ``{
+
+    import "Profile";
+    if (!Profile::ReadXML(filename))
+    {
+        Report::Error(_("Error reading control file"));
+        return false;
+    }
+    map software = Profile::current["install", "software"]:$[];
+    Config["base"] = software["base"]:"";
+    Config["addons"] = software["addons"]:[];
+    Config["packages"] = software["packages"]:[];
+    return true;
+}
+
 /**
  * Constructor
  */
