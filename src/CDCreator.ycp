@@ -208,33 +208,6 @@ global define boolean Write() ``{
     return true;
 }
 
-/**
- * Get all cd-creator settings from the first parameter
- * (For use by autoinstallation.)
- * @param settings The YCP structure to be imported.
- * @return boolean True on success
- */
-global define boolean Import (map settings) ``{
-    return true;
-}
-
-/**
- * Dump the cd-creator settings to a single map
- * (For use by autoinstallation.)
- * @return map Dumped settings (later acceptable by Import ())
- */
-global define map Export () ``{
-    return $[];
-}
-
-/**
- * Create a textual summary and a list of unconfigured cards
- * @return summary of the current configuration
- */
-global define list Summary() ``{
-    // translators: Configuration summary text for autoyast
-    return [ _("Configuration summary ..."), [] ];
-}
 
 /**
  * Create an overview table with all configured cards
@@ -320,7 +293,7 @@ global define void configSetup()
 	];
     doc["cdataSections"] = ["bootconfig"];
     doc["rootElement"] = "cd-creator";
-    doc["systemID"] = "/usr/share/autoinstall/dtd/cd-creator.dtd";
+    doc["systemID"] = "/usr/share/YaST2/data/cd-creator.dtd";
     doc["nameSpace"] = "http://www.suse.com/1.0/yast2ns";
     doc["typeNamespace"] = "http://www.suse.com/1.0/configns";
     XML::xmlCreateDoc(`cdcreator, doc);
