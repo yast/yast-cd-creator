@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Aug 31 09:57:40 CEST 2004 - visnov@suse.cz
+
+- adapted for new AutoinstSoftware interface
+- 2.10.1 
+
+-------------------------------------------------------------------
 Wed Aug 11 06:06:11 CEST 2004 - nashif@suse.de
 
 - Install required packages on demand
