@@ -1,5 +1,5 @@
 @HEADER-COMMENT@
-# neededforbuild yast2-devel-packages
+# neededforbuild yast2-devel-packages yast2-xml autoyast2-installation yast2-transfer yast2-storage yast2-country yast2-mouse yast2-bootloader yast2-packager yast2-x11  yast2-installation
 
 @HEADER@
 Requires:	yast2
@@ -26,7 +26,8 @@ install -d $RPM_BUILD_ROOT/var/lib/YaST2/cd-creator
 %dir @yncludedir@/cd-creator
 @yncludedir@/cd-creator/*
 @clientdir@/cd-creator.ycp
-@moduledir@/CDCreator.ycp
+@moduledir@/*.ycp
+@moduledir@/*.ybc
 @desktopdir@/cd-creator.desktop
 /usr/bin/y2mkiso
 %doc @docdir@
