@@ -12,6 +12,8 @@
 textdomain "cd-creator";
 
 import "Wizard";
+import "Popup";
+import "Package";
 
 include "wizard/sequencer.ycp";
 
@@ -151,28 +153,6 @@ define symbol MainSequence() ``{
     return ret;
 }
 
-/**
- * Whole configuration of cd-creator but without reading and writing.
- * For use with autoinstallation.
- * @return sequence result
- */
-
-define symbol CDCreatorAutoSequence() ``{
-    /* Initialization dialog caption */
-    string caption = _("CD Creator Configuration");
-    /* Initialization dialog contents */
-    term contents = `Label(_("Initializing..."));
-
-    Wizard::CreateDialog();
-    Wizard::SetDesktopIcon("cd-creator");
-    Wizard::SetContentsButtons(caption, contents, "",
-	    Label::BackButton(), Label::NextButton());
-
-    symbol ret = MainSequence();
-
-    UI::CloseDialog();
-    return ret;
-}
 
 
 /**
@@ -201,6 +181,12 @@ define symbol CDCreatorSequence() ``{
 
     Wizard::CreateDialog();
     Wizard::SetDesktopIcon("cd-creator");
+    if (!Package::InstallAll(["autoyast2-utils", "mkisofs"]))
+    {
+        Popup::Error(_("Installation of required packages
+failed."));
+        return `abort;
+    }
 
     symbol ret = WizardSequencer(aliases, sequence);
 
