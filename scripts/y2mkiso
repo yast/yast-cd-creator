@@ -16,8 +16,21 @@ XPARAMS=
 
 SOURCE=$1
 DEST=$2
+
+function usage()
+{
+echo "This script creates an ISO image from an existing directory containing a SuSE source."
+echo "The directory has to have files according to the SuSE media specification. This script"
+echo "will also search for the needed files to make a bootable CD and will create one if "
+echo "all files are available"
+echo
+echo "$0 <directory> <iso file name>"
+
+
+}
 if [ -z "$SOURCE" -o -z "$DEST" ]; then
-    echo "Missing parameters"
+    echo "Missing parameters."
+    usage
     exit 1
 fi
 SOURCE2=`mktemp -d /var/tmp/m_cd-XXXXXX`
