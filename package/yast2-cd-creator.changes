@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Mar  8 17:16:37 CET 2004 - nashif@suse.de
+
+- Use right textdomain
+- More type fixes
+- 2.9.4
+
+-------------------------------------------------------------------
 Fri Mar  5 16:23:11 CET 2004 - nashif@suse.de
 
 - stricter typing 
