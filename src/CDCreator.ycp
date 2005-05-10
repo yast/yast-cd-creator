@@ -726,7 +726,21 @@ global define boolean setPackages() ``{
     list<string> kernels = [];
 
     if (kernel == "") {
-        kernels = ["kernel-default", "kernel-bigsmp", "kernel-smp" ];
+        kernels = [
+                   "kernel-64k-pagesize",
+                   "kernel-bigsmp",
+                   "kernel-debug",
+                   "kernel-default",
+                   "kernel-iseries64",
+                   "kernel-pmac64",
+                   "kernel-pseries64",
+                   "kernel-s390",
+                   "kernel-s390x",
+                   "kernel-smp",
+                   "kernel-sn2",
+		   "kernel-xen",
+                   "kernel-um"
+		   ];
     } else {
         kernels = add(kernels, kernel);
     }
