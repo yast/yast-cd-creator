@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CD_PREPARER=${CD_PREPARER:-"CD-Team, http://www.suse.de/feedback"}
-CD_PUBLISHER=${CD_PUBLISHER:-"SuSE Linux AG, suse@suse.de"}
+CD_PUBLISHER=${CD_PUBLISHER:-"Novell, Inc."}
 
 
 # modified to use "-r" instead of "-R" to normalize file attributes
