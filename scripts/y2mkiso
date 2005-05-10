@@ -2,6 +2,16 @@
 
 CD_PREPARER=${CD_PREPARER:-"CD-Team, http://www.suse.de/feedback"}
 CD_PUBLISHER=${CD_PUBLISHER:-"Novell, Inc."}
+M_VERSION=`mkisofs --version 2>&1 | sed -e "s@^.* \([0-9.]*\) .*@\1@"`
+
+case $M_VERSION in
+   2.*)
+	PUB_OPT="-publisher"
+	;;
+   *)
+	PUB_OPT="-P"
+	;;
+esac
 
 
 # modified to use "-r" instead of "-R" to normalize file attributes
@@ -218,7 +228,7 @@ fi
 set -x
 mkisofs \
     -p "$CD_PREPARER" \
-    -P "$CD_PUBLISHER" \
+    $PUB_OPT "$CD_PUBLISHER" \
     $PARAMS -o $DEST $XPARAMS $SOURCE
 set +x
 
