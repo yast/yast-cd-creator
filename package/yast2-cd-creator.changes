@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Tue May 10 14:40:03 CEST 2005 - lslezak@suse.cz
+
+- copy all available kernels into the CD image (#82776)
+- updated publisher string (#82778)
+- publisher option has been renamed (#82779)
+- PPC support (create bootable CD (#82798), copy required files
+  (#82803), added HFS file mapping (#82802), removed abuild
+  dependent parts (#82800))
+- 2.12.0
+
+-------------------------------------------------------------------
 Thu Feb 10 10:06:56 CET 2005 - visnov@suse.cz
 
 - Merged proofread texts 
