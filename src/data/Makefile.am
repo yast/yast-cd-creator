@@ -6,6 +6,7 @@ ydatadir = @ydatadir@/cd-creator
 
 ydata_DATA = \
 	isolinux.cfg \
+	HFS_mapping \
 	message \
 	options.msg
 

@@ -149,6 +149,109 @@ if [ -d $SOURCE/$BOOT_BASE_DIR -o -d $SOURCE/$ROOT_ON_CD -o ! -z "$TMP_LS" ] ; t
 	            -hide $BOOT_BASE_DIR/boot.catalog -hide-joliet $BOOT_BASE_DIR/boot.catalog"
             echo found boot image. Making CD bootable.
             mkdir -p $SOURCE2/$BOOT_BASE_DIR || exit 1
+	elif [ -f $SOURCE/ppc/bootinfo.txt -o -d $SOURCE/suseboot ] ; then
+	    # various ppc boards, no -J option
+	    echo removing follow-symlinks and joilet from mkisofs options
+	    echo adding long filenames, translation table, Untranslated filenames
+	    echo "old: $PARAMS"
+	    PARAMS="`echo $PARAMS | sed 's/-f//g'`"
+	    PARAMS="`echo $PARAMS | sed 's/-J//g'` -T -U -l"
+	    echo "new: $PARAMS"
+	    #
+	    # iSeries reads an 'ISERIES64' file, -l is important to get rid of 8.3
+	    #
+	    # CHRP (pSeries) reads \ppc\bootinfo.txt
+	    # this file loads \yaboot.chrp,
+	    # again, -U is important to keep lowercase,
+	    # -l to get rid of 8.3
+	    # mkisofs up to 8.2 requires the --generic-boot option, together with 2 blocks from an AIX CD
+	    # mkisofs from 9.0 knows about the -chrp-boot option,
+	    # this generates a required msdos partition table, to load files from subdirectories ...
+	    # the hardcoded --generic-boot bootblock is incompatible with PReP and pmac
+	    # the 9.0 mkisofs can create an iso for PReP, CHRP and pmac, via -chrp-boot
+	    #
+	    # PReP usses the -prep-boot option to load some fixed blocks from the CD
+	    #
+	    # PowerMacs require a hfs partition and hfs filename translation
+
+	    # check first if mkisofs knows about -chrp-boot
+	    if  mkisofs -help 2>&1 | grep -q -- '-chrp-boot' ; then
+		echo "mkisofs knows about -chrp-boot, one CD for chrp/prep/pmac/iseries possible"
+		PPC_MKISOFS_CHRPBOOT=yes
+	    else
+		echo "mkisofs too old, CD for either chrp/iseries or prep/pmac"
+		PPC_MKISOFS_CHRPBOOT=no
+	    fi
+	    # check now for CHRP/iSeries vs PReP/pmac if the above is false
+	    if [ "$PPC_MKISOFS_CHRPBOOT" = "no" ] ; then
+		if [ -f $SOURCE/ppc/bootinfo.txt ] ; then
+		# assume thats a pSeries/iSeries CD
+			echo generic chrp bootblock missing
+			echo upgrade mkisofs
+			exit 1
+		else
+		# assume thats a PReP/Pmac CD
+		   # check if a PReP install file is available
+		   if [ -f $SOURCE/boot/zImage.prep.initrd ] ; then
+		   	PARAMS="$PARAMS -prep-boot boot/zImage.prep.initrd"
+			echo using boot/zImage.prep.initrd for PReP boot
+		   elif [ -f $SOURCE/suse/images/zImage.prep.initrd ] ; then
+		   	PARAMS="$PARAMS -prep-boot suse/images/zImage.prep.initrd"
+			echo using suse/images/zImage.prep.initrd for PReP boot
+		   fi
+		   # check if a pmac kernel is available
+		   if [ -d $SOURCE/suseboot ] ; then
+		   	# create a mac partition table
+			# use netatalk and macbinary filename translation
+			# bless a directory named suseboot, mark it bootable
+			echo using suseboot for hfs boot
+			PARAMS="$PARAMS -part --netatalk --macbin -hfs-bless $SOURCE/suseboot"
+			FILE_MAPPING="/usr/share/YaST2/data/cd-creator/HFS_mapping"
+			if [ -f $FILE_MAPPING ] ; then
+			    echo using $FILE_MAPPING for hfs mapping
+			    PARAMS="$PARAMS -map $FILE_MAPPING"
+			else
+			    echo $FILE_MAPPING not found
+			    echo not a blocker, but should be fixed
+			fi
+			PPC_HFS_APPID="not_yet_set"
+		   fi
+
+		fi
+	    else
+	    # new mkisofs with -chrp-boot option
+		if [ -f $SOURCE/ppc/bootinfo.txt ] ; then
+		# assume thats a pSeries/iSeries CD
+			echo "adding -chrp-boot for CHRP boot"
+			PARAMS="$PARAMS -chrp-boot"
+		fi
+		# check if a PReP install file is available
+		if [ -f $SOURCE/boot/zImage.prep.initrd ] ; then
+			PARAMS="$PARAMS -prep-boot boot/zImage.prep.initrd"
+			echo using boot/zImage.prep.initrd for PReP boot
+		elif [ -f $SOURCE/suse/images/zImage.prep.initrd ] ; then
+			PARAMS="$PARAMS -prep-boot suse/images/zImage.prep.initrd"
+			echo using suse/images/zImage.prep.initrd for PReP boot
+		fi
+		# check if a pmac kernel is available
+		if [ -d $SOURCE/suseboot ] ; then
+			# create a mac partition table
+			# use netatalk and macbinary filename translation
+			# bless a directory named suseboot, mark it bootable
+			echo using suseboot for hfs boot
+			PARAMS="$PARAMS -part --netatalk --macbin -hfs-bless $SOURCE/suseboot"
+			FILE_MAPPING="/usr/share/YaST2/data/cd-creator/HFS_mapping"
+			if [ -f $FILE_MAPPING ] ; then
+			echo using $FILE_MAPPING for hfs mapping
+			PARAMS="$PARAMS -map $FILE_MAPPING"
+			else
+			echo $FILE_MAPPING not found
+			echo not a blocker, but should be fixed
+			fi
+			PPC_HFS_APPID="not_yet_set"
+		fi
+	    fi
+	    # end ppc boards
         else
           if [ -d $SOURCE/etc ] ; then
               echo found $SOURCE/etc.  making sure, it is at the beginning of iso image.
@@ -217,6 +320,11 @@ if [ -d $SOURCE/$BOOT_BASE_DIR -o -d $SOURCE/$ROOT_ON_CD -o ! -z "$TMP_LS" ] ; t
 		;;
 	esac
 
+	if [ "$PPC_HFS_APPID" = "not_yet_set" ] ; then
+	    # this string appears in the MacOS Finder, max 27 chars
+	    echo "adding HFS Finder volume: `echo $APPID | cut -b 1-27`"
+	    PARAMS="$PARAMS -hfs-volid `echo $APPID | cut -b 1-27`"
+	fi
 
 	VOL="$VOL_PREFIX$DIS.$KND$VOL"
         if test -n "$VOL" ; then
