@@ -368,6 +368,12 @@ global define boolean  CreateSkeleton () ``{
     {
 	commands= add(commands, sformat("/bin/mkdir -p %1/boot/loader", skel_root));
     }
+    if (Arch::ppc || Arch::ppc64)
+    {
+	commands= add(commands, sformat("/bin/mkdir %1/etc", skel_root));
+	commands= add(commands, sformat("/bin/mkdir %1/ppc", skel_root));
+	commands= add(commands, sformat("/bin/mkdir %1/suseboot", skel_root));
+    }
 
     
     list<integer> enabled = Pkg::SourceGetCurrent(true);
@@ -404,6 +410,13 @@ global define boolean  CreateSkeleton () ``{
 		if (Arch::i386() || Arch::x86_64())
 		{
 		    commands= add(commands, sformat("/bin/cp  %1/boot/loader/* %2/boot/loader", source, skel_root));
+		}
+		else if (Arch::ppc || Arch::ppc64)
+		{
+		    commands= add(commands, sformat("/bin/cp -a %1/boot/* %2/boot/", source, skel_root));
+		    commands= add(commands, sformat("/bin/cp %1/etc/* %2/etc/", source, skel_root));
+		    commands= add(commands, sformat("/bin/cp %1/ppc/* %2/ppc/", source, skel_root));
+		    commands= add(commands, sformat("/bin/cp %1/suseboot/* %2/suseboot/", source, skel_root));
 		} else {
 		    commands= add(commands, sformat("/bin/cp  %1/boot/* %2/boot/", source, skel_root));
 		}
@@ -412,7 +425,13 @@ global define boolean  CreateSkeleton () ``{
 	    {
 		// Copy all the contents of /boot
 		commands= add(commands, sformat("/bin/cp -a  %1/boot/* %2/boot", source, skel_root));
-		
+
+		if (Arch::ppc || Arch::ppc64)
+		{
+		    commands= add(commands, sformat("/bin/cp %1/ppc/* %2/ppc", source, skel_root));
+		    commands= add(commands, sformat("/bin/cp %1/etc/* %2/etc", source, skel_root));
+		    commands= add(commands, sformat("/bin/cp %1/suseboot/* %2/suseboot", source, skel_root));
+		}
 	    }
 	    commands= add(commands, sformat("/bin/cp  %1/driverupdate %2/", source, skel_root));
 	    // Descriptions, Selections and package databases
