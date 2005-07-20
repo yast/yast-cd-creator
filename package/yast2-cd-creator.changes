@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Jul 20 11:49:27 CEST 2005 - arvin@suse.de
+
+- added yast2-storage-lib to neededforbuild
+- 2.12.1
+
+-------------------------------------------------------------------
 Tue May 10 14:40:03 CEST 2005 - lslezak@suse.cz
 
 - copy all available kernels into the CD image (#82776)
@@ -12,7 +18,7 @@ Tue May 10 14:40:03 CEST 2005 - lslezak@suse.cz
 -------------------------------------------------------------------
 Thu Feb 10 10:06:56 CET 2005 - visnov@suse.cz
 
-- Merged proofread texts 
+- Merged proofread texts
 
 -------------------------------------------------------------------
 Thu Feb 10 05:50:12 CET 2005 - nashif@suse.de
@@ -28,13 +34,13 @@ Wed Feb  9 19:05:46 CET 2005 - nashif@suse.de
 Tue Aug 31 13:15:49 CEST 2004 - sh@suse.de
 
 - merged proofread messages
-- 2.10.2 
+- 2.10.2
 
 -------------------------------------------------------------------
 Tue Aug 31 09:57:40 CEST 2004 - visnov@suse.cz
 
 - adapted for new AutoinstSoftware interface
-- 2.10.1 
+- 2.10.1
 
 -------------------------------------------------------------------
 Wed Aug 11 06:06:11 CEST 2004 - nashif@suse.de
@@ -45,7 +51,7 @@ Wed Aug 11 06:06:11 CEST 2004 - nashif@suse.de
 -------------------------------------------------------------------
 Sat May  8 16:36:00 CEST 2004 - nashif@suse.de
 
-- Use modified isolinux files from the CD 
+- Use modified isolinux files from the CD
 
 -------------------------------------------------------------------
 Sat May  8 04:42:36 CEST 2004 - nashif@suse.de
@@ -73,7 +79,7 @@ Thu Apr  1 04:59:50 CEST 2004 - nashif@suse.de
 -------------------------------------------------------------------
 Mon Mar 29 17:28:14 CEST 2004 - nashif@suse.de
 
-- Added missing files 
+- Added missing files
 
 -------------------------------------------------------------------
 Tue Mar 16 23:41:01 CET 2004 - nashif@suse.de
@@ -96,7 +102,7 @@ Mon Mar  8 17:16:37 CET 2004 - nashif@suse.de
 -------------------------------------------------------------------
 Fri Mar  5 16:23:11 CET 2004 - nashif@suse.de
 
-- stricter typing 
+- stricter typing
 - 2.9.3
 
 -------------------------------------------------------------------
