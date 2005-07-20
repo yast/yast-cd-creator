@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Jul 20 12:36:48 CEST 2005 - lslezak@suse.cz
+
+- added missing HFS_mapping file
+- 2.12.2
+
+-------------------------------------------------------------------
 Wed Jul 20 11:49:27 CEST 2005 - arvin@suse.de
 
 - added yast2-storage-lib to neededforbuild
