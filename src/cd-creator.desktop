@@ -19,5 +19,5 @@ Icon=yast-cd-creator
 Exec=/sbin/yast2 cd-creator 
 
 Name=CD Creator
-GenericName=Create Installation CDs
+GenericName=Create installation CDs
 X-KDE-SubstituteUID=true
