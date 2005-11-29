@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Nov 29 09:10:03 CET 2005 - visnov@suse.cz
+
+- removed yast2-x11 build dependency
+- 2.12.4 
+
+-------------------------------------------------------------------
 Thu Jul 28 10:59:50 CEST 2005 - lslezak@suse.cz
 
 - updated desktop file
