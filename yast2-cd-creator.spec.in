@@ -1,8 +1,8 @@
 @HEADER-COMMENT@
 
 @HEADER@
-BuildRequires:	autoyast2-installation yast2-devel-packages yast2-update yast2-bootloader
-Requires:	yast2
+BuildRequires:	perl-XML-Writer update-desktop-files yast2 yast2-devtools yast2-testsuite yast2-packager autoyast2-installation
+Requires:	yast2 yast2-packager autoyast2-installation
 
 BuildArchitectures:	noarch
 
