@@ -1,0 +1,953 @@
+/**
+ * File:	modules/CDCreator.ycp
+ * Package:	Configuration of cd-creator
+ * Summary:	Data for configuration of cd-creator, input and output functions.
+ * Authors:	Anas Nashif <nashif@suse.de>
+ *
+ * $Id$
+ *
+ * Representation of the configuration of cd-creator.
+ * Input and output routines.
+ */
+
+{
+
+module "CDCreator";
+textdomain "cd-creator";
+
+import "Progress";
+import "Report";
+import "Summary";
+import "XML";
+import "SourceManager";
+import "URL";
+import "Misc";
+import "Directory";
+import "Profile";
+import "AutoinstSoftware";
+import "Arch";
+import "PackageAI";
+
+
+global define void enableSources();
+
+
+list<integer> old_enabled = [];
+
+
+global string AYRepository = "";
+
+global map meta = $[];
+global map meta_local = $[];
+
+global list<string> missing_packages = [];
+
+global list<map> toCopy = [];
+
+/* Local variables */
+
+global string skel_root = "";
+
+
+global boolean profile_parsed = false;
+
+
+/* Configuration Map */
+global map<string, any> Config = $[];
+
+/* All Configurations */
+global map<string, map<string, any> > Configs = $[];
+
+/* Configuration Repository */
+global string Rep = "/var/lib/YaST2/cd-creator";
+
+/* Configuration file */
+global string ConfigFile = Rep + "/cdcreator.xml";
+
+/**
+ * Abort function
+ * return boolean return true if abort
+ */
+global block<boolean> AbortFunction = nil;
+
+/**
+ * Data was modified?
+ */
+global boolean modified = false;
+
+global boolean proposal_valid = false;
+
+
+/**
+ * Data was modified?
+ * @return true if modified
+ */
+global define boolean Modified() ``{
+    y2debug("modified=%1",modified);
+    return modified;
+};
+
+include "cd-creator/routines.ycp";
+
+
+
+map ReadContentFile(string content) {
+
+    map contentmap = (map)SCR::Read(.content_file, content);
+    return contentmap;
+}
+
+/**
+ * Read all cd-creator settings
+ * @return true on success
+ */
+global define boolean Read() ``{
+
+    /* CDCreator read dialog caption */
+    string caption = _("Initializing CD Creator Configuration");
+
+    integer steps = 1;
+
+    integer sl = 2;
+    sleep(sl);
+
+    // We do not set help text here, because it was set outside
+    Progress::New( caption, " ", steps, [
+	    // translators: progress stage 1/1
+	    _("Read the configuration")
+	], [
+	    // translators: progress step 1/1
+	    _("Reading the database..."),
+	    // translators: progress finished
+	    _("Finished")
+	],
+	""
+    );
+
+    // read database
+    if(Abort()) return false;
+    Progress::NextStage();
+
+    map c = $[];
+    if (SCR::Read(.target.size, ConfigFile) != -1 )
+    {
+	c = XML::XMLToYCPFile(ConfigFile);
+    }
+    list<map<string, any> > all = c["configurations"]:[];
+    Configs = listmap (map<string,any> i, all, ``{
+	string name = i["name"]:"";
+	return($[name: i]);
+    });
+    y2milestone("Configs: %1", Configs);
+
+    // translators: error message
+    if(false) Report::Error(_("Cannot read the configuration."));
+    sleep(sl);
+
+
+    if(Abort()) return false;
+    // translators: progress finished
+    ProgressNextStage(_("Finished"));
+    sleep(sl);
+
+    if(Abort()) return false;
+    modified = false;
+    return true;
+}
+
+
+
+/**
+ * Prepare map for writing  into XML
+ * @return lists of configurations
+ */
+global define list PrepareConfigs() ``{
+
+    list c = maplist(string k, map v, Configs, ``{
+	return(v);
+    });
+    return (c);
+}
+
+/**
+ * Write all cd-creator settings
+ * @return true on success
+ */
+global define boolean Write() ``{
+
+    /* CDCreator read dialog caption */
+    string caption = _("Saving CD Creator Configuration");
+
+    integer steps = 2;
+
+    integer sl = 50;
+    sleep(sl);
+
+    // We do not set help text here, because it was set outside
+    Progress::New(caption, " ", steps, [
+	    // translators: progress stage 1/2
+	    _("Write the settings"),
+	], [
+	    // translators: progress step 1/1
+	    _("Writing the settings..."),
+	    // translators: progress finished
+	    _("Finished")
+	],
+	""
+    );
+
+    // write settings
+    if(Abort()) return false;
+    Progress::NextStage();
+
+    list c = PrepareConfigs();
+    map xml = $["configurations": c];
+    boolean ret = XML::YCPToXMLFile(`cdcreator, xml, ConfigFile);
+
+    // translators: error message
+    if(!ret) Report::Error (_("Error while writing settings."));
+
+
+    // run SuSEconfig
+    if(Abort()) return false;
+    Progress::NextStage ();
+    // translators: error message
+    if(false) Report::Error (_("SuSEconfig script failed."));
+    sleep(sl);
+
+    if(Abort()) return false;
+    // translators: progress finished
+    ProgressNextStage(_("Finished"));
+    sleep(sl);
+
+    if(Abort()) return false;
+    return true;
+}
+
+/**
+ * Get all cd-creator settings from the first parameter
+ * (For use by autoinstallation.)
+ * @param settings The YCP structure to be imported.
+ * @return boolean True on success
+ */
+global define boolean Import (map settings) ``{
+    return true;
+}
+
+/**
+ * Dump the cd-creator settings to a single map
+ * (For use by autoinstallation.)
+ * @return map Dumped settings (later acceptable by Import ())
+ */
+global define map Export () ``{
+    return $[];
+}
+
+/**
+ * Create a textual summary and a list of unconfigured cards
+ * @return summary of the current configuration
+ */
+global define list Summary() ``{
+    // translators: Configuration summary text for autoyast
+    return [ _("Configuration summary ..."), [] ];
+}
+
+/**
+ * Create an overview table with all configured cards
+ * @return table items
+ */
+global define list Overview() ``{
+    y2milestone("Configs: %1", Configs);
+    list overview = maplist(string name , map cfg, Configs , ``{
+            string isofile = cfg["iso-directory"]:"" + "/" +  cfg["isofile"]:"";
+            if (SCR::Read(.target.size, isofile) < 0 )
+                isofile = _("No Files");
+	return(`item(`id(name), name, cfg["product"]:"", isofile));
+    });
+    return overview;
+}
+
+
+/**
+ * Get media urls
+ * @param list list of ids
+ * @return list list of urls
+ */
+global define list getSourceURLs ( list<integer> ids ) ``{
+    list<string> urls = maplist(integer i , ids, ``{
+	map media = Pkg::SourceMediaData(i);
+
+	return(media["url"]:"");
+    });
+
+    return urls;
+}
+
+
+/**
+ * get path to directory source
+ * @param string url
+ * @return string path
+ */
+global define string getSourceDir(string url) ``{
+    map urlsegs = URL::Parse(url);
+    return(urlsegs["path"]:"");
+}
+
+/**
+ * Return contents of isolinux.cfg from the given source
+ * @return string with contents of file.
+ */
+global define string Readisolinux() ``{
+
+    string bootconfig = Config["bootconfig"]:"";
+    if (bootconfig != "")
+    {
+	return bootconfig;
+    }
+
+    string bootconfig_path = "";
+    if (Config["pkgtype"]:"" == "autoyast")
+    {
+        bootconfig_path = sformat("%1/cd-creator/isolinux.cfg",
+                Directory::datadir);
+    }
+    else
+    {
+        string dir = getSourceDir(Config["sources", 0]:"" );
+        bootconfig_path = sformat("%1/boot/loader/isolinux.cfg", dir );
+    }
+    if (SCR::Read(.target.size, bootconfig_path) != -1 )
+          bootconfig = (string)SCR::Read(.target.string, bootconfig_path );
+    return bootconfig;
+}
+
+/**
+ * Create XML Configuration
+ */
+global define void configSetup()
+    ``{
+    map doc = $[];
+    doc["listEntries"] =
+	$[
+	  "packages":"package",
+	  "addons":"addon",
+	  "configurations": "config"
+	];
+    doc["cdataSections"] = ["bootconfig"];
+    doc["rootElement"] = "cd-creator";
+    doc["systemID"] = "/usr/share/autoinstall/dtd/cd-creator.dtd";
+    doc["nameSpace"] = "http://www.suse.com/1.0/yast2ns";
+    doc["typeNamespace"] = "http://www.suse.com/1.0/configns";
+    XML::xmlCreateDoc(`cdcreator, doc);
+    return;
+}
+
+
+/**
+ * Create Skeleton
+ * @return boolean true on success
+ */
+global define boolean  CreateSkeleton () ``{
+
+
+    list<string> commands = [];
+    integer ret = 0;
+    boolean success = true;
+    boolean savespace = Config["savespace"]:false;
+    boolean sp = false;
+    string sles_path = "";
+
+    // Create skeleton directory
+    skel_root = sformat("%1/%2", Config["iso-directory"]:"", Config["name"]:"");
+    SCR::Execute(.target.mkdir, skel_root);
+
+    commands= add(commands, sformat("/bin/mkdir -p %1/boot", skel_root));
+    
+    if (Arch::i386() || Arch::x86_64())
+    {
+	commands= add(commands, sformat("/bin/mkdir -p %1/boot/loader", skel_root));
+    }
+    if (Arch::ppc() || Arch::ppc64())
+    {
+	commands= add(commands, sformat("/bin/mkdir %1/etc", skel_root));
+	commands= add(commands, sformat("/bin/mkdir %1/ppc", skel_root));
+	commands= add(commands, sformat("/bin/mkdir %1/suseboot", skel_root));
+    }
+
+    
+    list<integer> enabled = Pkg::SourceGetCurrent(true);
+    if (size(enabled) == 0 )
+        return false;
+    y2milestone("enabled sources: %1", enabled );
+    string source = "";
+    string descrDir = "";
+    string dataDir = "";
+    
+    foreach(integer id, enabled, ``{
+	
+	map this_source = meta[id]:$[];
+	source   = this_source["path"]:"";
+	meta_local = ReadContentFile(source + "/content");
+
+	if (source == "")
+	    return false;
+	
+	y2debug("content: %1", meta_local);
+	if (this_source["productData","baseproductname"]:"" != "" &&
+	    issubstring(meta_local["FLAGS"]:"", "SP"))
+	{
+	    y2debug("this source: %1", this_source );
+	    descrDir = this_source["productData","descrdir"]:"suse/setup/descr";
+	    dataDir  = this_source["productData", "datadir"]:"suse";
+	    y2debug("source data: %1", this_source["sourceData", "url"]:"" );
+	     // Service Pack
+	    if (savespace)
+	    {
+		// Installation, rescue images		
+		commands= add(commands, sformat("/bin/cp  %1/boot/rescue %2/boot", source, skel_root));
+		// Loader, x86 specific
+		if (Arch::i386() || Arch::x86_64())
+		{
+		    commands= add(commands, sformat("/bin/cp  %1/boot/loader/* %2/boot/loader", source, skel_root));
+		}
+		else if (Arch::ppc() || Arch::ppc64())
+		{
+		    commands= add(commands, sformat("/bin/cp -a %1/boot/* %2/boot/", source, skel_root));
+		    commands= add(commands, sformat("/bin/cp %1/etc/* %2/etc/", source, skel_root));
+		    commands= add(commands, sformat("/bin/cp %1/ppc/* %2/ppc/", source, skel_root));
+		    commands= add(commands, sformat("/bin/cp %1/suseboot/* %2/suseboot/", source, skel_root));
+		} else {
+		    commands= add(commands, sformat("/bin/cp  %1/boot/* %2/boot/", source, skel_root));
+		}
+	    }
+	    else
+	    {
+		// Copy all the contents of /boot
+		commands= add(commands, sformat("/bin/cp -a  %1/boot/* %2/boot", source, skel_root));
+
+		if (Arch::ppc() || Arch::ppc64())
+		{
+		    commands= add(commands, sformat("/bin/cp %1/ppc/* %2/ppc", source, skel_root));
+		    commands= add(commands, sformat("/bin/cp %1/etc/* %2/etc", source, skel_root));
+		    commands= add(commands, sformat("/bin/cp %1/suseboot/* %2/suseboot", source, skel_root));
+		}
+	    }
+	    commands= add(commands, sformat("/bin/cp  %1/driverupdate %2/", source, skel_root));
+	    // Descriptions, Selections and package databases
+	    commands= add(commands,
+			  sformat("/bin/cp -a %1/%2/* %3/%4",
+				  source,
+				  descrDir,
+				  skel_root,
+				  descrDir)
+			  );
+	    
+	    sp = true;
+	}
+	else if  (this_source["productData","baseproductname"]:"" != "" )
+	{
+	    // SLES
+
+	    sles_path = source;
+	    y2debug("this source: %1", this_source );
+	    descrDir = this_source["productData","descrdir"]:"suse/setup/descr";
+	    dataDir  = this_source["productData", "datadir"]:"suse";
+	    y2debug("source data: %1", this_source["sourceData", "url"]:"" );
+	    success = (boolean)SCR::Execute(.target.mkdir, sformat("%1/%2", skel_root, dataDir));
+	    if (!success)
+		return false;
+	 
+	    commands= add(commands, sformat("/bin/mkdir -p %1/%2",  skel_root, descrDir));	    
+
+	    if (savespace)
+	    {
+		// Installation, rescue images
+		commands= add(commands, sformat("/bin/cp  %1/boot/root %2/boot", source, skel_root));
+		commands= add(commands, sformat("/bin/cp  %1/boot/rescue %2/boot", source, skel_root));
+		commands= add(commands, sformat("/bin/cp  %1/content %2", source, skel_root));
+		commands= add(commands, sformat("/bin/cp  %1/control.xml %2", source, skel_root));
+	    } else {
+		commands= add(commands, sformat("/bin/cp  %1/boot/root %2/boot", source, skel_root));
+		commands= add(commands, sformat("/bin/cp  %1/* %2", source, skel_root));
+	    }
+	    // Descriptions, Selections and package databases
+	    commands= add(commands,
+			  sformat("/bin/cp -a %1/%2/* %3/%4",
+				  source,
+				  descrDir,
+				  skel_root,
+				  descrDir)
+			  );
+
+	    // Prepare media files
+	    commands= add(commands, sformat("/bin/cp -a %1/media.1  %2", source, skel_root));
+	    commands= add(commands, sformat("/usr/bin/head -n 2 %1/media.1/media  >   %2/media.1/media.tmp && mv %2/media.1/media.tmp %2/media.1/media",  skel_root, skel_root));
+
+	    
+	}
+    });
+    
+
+    if (!sp)
+    {
+	source = sles_path;
+	if (savespace)
+	{
+	    // Installation, rescue images		
+	    commands= add(commands, sformat("/bin/cp  %1/boot/rescue %2/boot", source, skel_root));
+	    // Loader, x86 specific
+	    if (Arch::i386() || Arch::x86_64())
+	    {
+		commands= add(commands, sformat("/bin/cp  %1/boot/loader/* %2/boot/loader", source, skel_root));
+	    } else {
+		commands= add(commands, sformat("/bin/cp  %1/boot/* %2/boot/", source, skel_root));
+	    }
+	}
+	else
+	{
+	    // Copy all the contents of /boot
+	    commands= add(commands, sformat("/bin/cp -a  %1/boot/* %2/boot", source, skel_root));
+		
+	}	
+    }
+    
+    // Descriptions, Selections and package databases
+    commands= add(commands,
+		  sformat("/bin/cp -a %1/%2/* %3/%4",
+			  source,
+			  descrDir,
+			  skel_root,
+			  descrDir)
+		  );
+
+    // Prepare media files
+    commands= add(commands, sformat("/bin/cp -a %1/media.1  %2", source, skel_root));
+    commands= add(commands, sformat("/usr/bin/head -n 2 %1/media.1/media  >   %2/media.1/media.tmp && mv %2/media.1/media.tmp %2/media.1/media",  skel_root, skel_root));
+
+
+    // copy autoyast profile
+
+
+    if (Config["profile"]:""!="" && Config["copy_profile"]:false)
+    {
+        commands = add(commands, sformat("/bin/cp %1 %2/autoinst.xml", Config["profile"]:"",
+                skel_root));
+    }
+    // Media nr.
+    integer count = 1;
+
+    commands= add(commands, sformat("/bin/echo %1 >> %2/media.1/media ", count,  skel_root));
+
+    foreach (string c, commands, ``{
+        y2debug("command: %1", c);
+	ret = (integer)SCR::Execute (.target.bash, c);
+    });
+
+    return success;
+}
+
+
+/**
+ * CopyMiscFiles
+ * Copy other files to directory tree
+ * @return boolean true on success
+ */
+global define boolean CopyMiscFiles() ``{
+
+    string cpCmd = "";
+    y2debug("isolinux.cfg: %1", Config["bootconfig"]:"" );
+    if (Config["bootconfig"]:"" != "") 
+    {
+        y2debug("custom config available");
+        SCR::Write(.target.string, 
+                sformat("%1/boot/loader/isolinux.cfg", skel_root), 
+                Config["bootconfig"]:"" );
+        /*
+        string cpCmd = sformat("cp %1/cd-creator/isolinux.cfg %2/boot/loader",
+            Directory::datadir, skel_root);
+        SCR::Execute (.target.bash, cpCmd);
+            */
+    }
+    cpCmd = sformat("cp %1/cd-creator/message %2/boot/loader",
+            Directory::datadir, skel_root);
+    SCR::Execute (.target.bash, cpCmd);
+    cpCmd = sformat("cp %1/cd-creator/options.msg %2/boot/loader",
+            Directory::datadir, skel_root);
+    SCR::Execute (.target.bash, cpCmd);
+
+
+    return true;
+}
+
+
+
+/**
+ * Enable source and get source meta data
+ * @return true on success
+ */
+global define boolean EnableSource() ``{
+    enableSources();
+    list<integer> sources = maplist(string url , CDCreator::Config["sources"]:[], ``{
+	integer i = SourceManager::getSourceId(url);
+	return (i);
+    });
+    list ids = Pkg::SourceStartCache(true);
+    if (size(ids) == 0 )
+	return false;
+    foreach(integer i , sources, ``{
+	map<string, any> m = $[];
+	m["productData"] = Pkg::SourceProductData(i);
+	m["mediaData"] = Pkg::SourceMediaData(i);
+	m["sourceData"]	= Pkg::SourceGeneralData(i);
+        string p = m["sourceData", "url"]:"";
+        map parsed = URL::Parse(p);
+        m["path"] = parsed["path"]:"";
+	meta[i] = m;
+    });
+
+    y2milestone("meta: %1", meta);
+    return true;
+}
+
+
+/**
+ * Get all possible sources
+ * @return available enabled sources list for widget
+ */
+global define list<term> GetDirSources(string source) ``{
+    list<integer> ids = Pkg::SourceStartCache(true);
+    list<term> sources = [];
+    foreach(integer i , ids, ``{
+        map prod = Pkg::SourceProductData(i);
+        map media = Pkg::SourceMediaData(i);
+	map url = URL::Parse(media["url"]:"");
+	if (url["scheme"]:"" == "dir")
+	{
+	    boolean selected = (source == url["path"]:"");
+	    sources = add(sources, `item(`id(url["path"]:""), url["path"]:"", selected));
+
+	}
+    });
+
+    return sources;
+}
+
+
+/**
+ * Check Product dependencies and determine product to be used for
+ * booting. Also determine what is the main product.
+ *
+ */
+global define list checkProductDependency() ``{
+
+    list<integer> sources =  maplist(string url , Config["sources"]:[], ``{
+	integer i = SourceManager::getSourceId(url);
+	UI::ChangeWidget(`id(`table), `Item(i, 0) , _("X"));
+	return (i);
+    });
+
+    list<map> products = maplist(integer id , sources, ``{
+	map generalData = Pkg::SourceGeneralData( id );
+	map productData = Pkg::SourceProductData( id );
+
+	map result = $[];
+
+	result["baseproduct"] = sformat("%1-%2", productData["baseproductname"]:"", productData["baseproductversion"]:"" );
+	result["vendor"] = productData["vendor"]:"";
+	result["product"] = sformat("%1-%2", productData["productname"]:"", productData["productversion"]:"" );
+	result["is_service_pack"] = ( issubstring(productData["productname"]:"", "Service-Pack") );
+	result["id"] = id;
+	return(result);
+    });
+
+    list<map> final = maplist( map product, products, ``{
+	list<map> based_on_this = filter(map p, products, ``(product["product"]:"" == p["baseproduct"]:""));
+	list<integer> ids = maplist(map p, based_on_this, ``(p["id"]:-1));
+	y2milestone("Products based on %1: %2", product["product"]:"", based_on_this );
+	product["dependents"] = ids;
+	return(product);
+    });
+
+
+    map installedProduct = (map)select( (list)filter(map p, final, ``(size(p["dependents"]:[]) == 0
+								      && !p["is_service_pack"]:false
+								      && issubstring(p["vendor"]:"", "SuSE"))) , 0 , $[]);;
+    Config["product"] = installedProduct["product"]:"";
+    y2milestone("all: %1", final);
+    return final;
+
+}
+
+
+
+global define void RestoreOriginalStatus()
+{
+    list<integer> current_enabled = Pkg::SourceGetCurrent(true);
+    foreach(integer id , current_enabled, ``{
+                Pkg::SourceSetEnabled (id, false);
+	});
+    foreach(integer id , old_enabled, ``{
+                Pkg::SourceSetEnabled (id, true);
+		Pkg::SourceFinish(id);
+	});
+}
+
+global define void enableSources()``{
+
+    foreach(integer id , old_enabled, ``{
+                Pkg::SourceSetEnabled (id, false);
+		Pkg::SourceFinish(id);
+	});
+    list<integer> sources = maplist(string url , CDCreator::Config["sources"]:[], ``{
+            integer i = SourceManager::getSourceId(url);
+            return (i);
+            });
+
+
+    foreach(integer id , sources, ``{
+		Pkg::SourceSetEnabled(id, true);
+	});
+    return;
+}
+
+
+
+/**
+ * Set packages to be copied to iso image tree
+ * @return boolean
+ */
+global define boolean setPackages() ``{
+    string base = Config["base"]:"";
+    list<string> addons = Config["addons"]:[];
+    list<string> packages  = Config["packages"]:[];
+    list<string> post_packages  = Config["post-packages"]:[];
+    string kernel = Config["kernel"]:"";
+    list<string> kernels = [];
+
+    if (kernel == "") {
+        kernels = [
+                   "kernel-64k-pagesize",
+                   "kernel-bigsmp",
+                   "kernel-debug",
+                   "kernel-default",
+                   "kernel-iseries64",
+                   "kernel-pmac64",
+                   "kernel-pseries64",
+                   "kernel-s390",
+                   "kernel-s390x",
+                   "kernel-smp",
+                   "kernel-sn2",
+		   "kernel-xen",
+                   "kernel-um"
+		   ];
+    } else {
+        kernels = add(kernels, kernel);
+    }
+
+
+
+    // Base Selection
+    if (base!="")
+    {
+	Pkg::SetSelection(base);
+    }
+
+    // Addons
+    if (size(addons) > 0 )
+    {
+	foreach(string s, addons, ``{
+	    Pkg::SetSelection(s);
+	});
+    }
+
+    packages = (list<string>) union(packages, post_packages);
+    packages = (list<string>)union(packages, kernels);
+
+    y2milestone("Selected packages: %1", packages);
+
+    Pkg::DoProvide(packages);
+
+    boolean ret = Pkg::ActivateSelections();
+
+    Pkg::PkgSolve(false);
+
+    return (ret);
+}
+
+
+/**
+  * getRpmPath
+  * get physical rpm location
+  * @return: package path
+  */
+global define  string  getRpmPath( map package_data)
+{
+
+    y2debug("package data: %1", package_data );
+    integer srcid = package_data["srcid"]:-1;
+    map s = meta[srcid]:$[];
+    map pd = s["productData"]:$[];
+    map md = s["mediaData"]:$[];
+    string dataDir = pd["datadir"]:"./suse";
+    string url = md["url"]:"";
+    map urlmap = URL::Parse(url);
+    string ArchLocation =  sformat("%1/%2", package_data["arch"]:"noarch", package_data["location"]:"norpm.rpm");
+    string p = urlmap["path"]:"";
+    list<string> pp = splitstring(p, "/");
+    if (pp[size(pp)-1]:"" == "CD1" ) {
+        pp[size(pp)-1] = sformat("CD%1", package_data["medianr"]:1);
+    }
+    else if  (pp[size(pp)-2]:"" == "CD1" ) {
+        pp[size(pp)-2] = sformat("CD%1", package_data["medianr"]:1);
+    }
+
+    p = mergestring(pp, "/");
+    y2debug("new path: %1", p);
+    string FullPath =  p + "/" + dataDir + "/" + ArchLocation;
+    return FullPath;
+};
+
+
+global define boolean verifyDestination() ``{
+    string isodir = Config["iso-directory"]:"" + "/"  + Config["name"]:"";
+    if ((integer)SCR::Read(.target.size, Config["iso-directory"]:"" + "/"  + Config["name"]:"") > 0 ) { // its a file!
+        if (Popup::YesNo(sformat(_("Destination directory exists or is a file.
+Remove directory %1?") , isodir)))
+            SCR::Execute(.target.bash, "rm -rf " + isodir );
+        else
+            return false;
+    }
+    return true;
+}
+
+/**
+ * Check if selected packages are available
+ * @return string error message
+ */
+global define string checkPackageAvail() ``{
+
+    string error_msg = "";
+
+    Progress::Title(_("Checking for package availability..."));
+
+    list<string> selectedPackages = Pkg::GetPackages (`selected , true);
+
+    list<string> failed = [];
+    toCopy = [];
+    foreach(string package, selectedPackages, ``{
+
+	map package_data = Pkg::PkgProperties(package);
+	string FullPath = getRpmPath(package_data);
+	y2debug("Checking for package: %1 ",  FullPath);
+	integer package_size = (integer)SCR::Read(.target.size, FullPath);
+	if (package_size == -1 )
+	{
+	    failed = add (failed, FullPath);
+	}
+	else
+	{
+	    string arch =  package_data["arch"]:"noarch";
+	    toCopy = add(toCopy, $["path": FullPath, "name": package, "arch":  arch ]);
+	}
+    });
+    CDCreator::missing_packages = failed;
+    if (size(failed) > 0 )
+    {
+	integer num = size(failed);
+	error_msg = sformat(_("%1 package not available.", "%1 packages not available.", num), num);
+    }
+    y2milestone("packages not found: %1", failed);
+
+    return error_msg;
+}
+
+
+
+
+
+/**
+ * CopyPackages()
+ * Copy selected package to target tree
+ * @param integer id
+ * @return boolean
+ */
+global boolean CopyPackages()
+{
+    string datadir  = "suse";
+    string basedir = Config["iso-directory"]:"" + "/" +  Config["name"]:"" +
+        "/" +  datadir;
+    foreach(map package, toCopy, ``{
+
+	Progress::Title(sformat(_("Copying %1"), package["name"]:"..." ));
+	Progress::NextStep();
+	string dir = basedir + "/" + package["arch"]:"";
+
+	if (SCR::Read(.target.dir, dir) == nil )
+	{
+            y2milestone("Creating dir: %1", dir);
+	    SCR::Execute(.target.mkdir , dir);
+            y2debug("dir contents: %1", (list)SCR::Read(.target.dir, dir));
+	}
+
+	string cpCmd = sformat("cp %1 %2", package["path"]:"", dir );
+
+	y2debug("%1", cpCmd);
+
+	any ret = SCR::Execute (.target.bash, cpCmd);
+        if (ret!=0)
+        {
+            Popup::Error(_("Error while copying packages. 
+Check the created directory for possible hints."));
+            return false;
+        }
+
+    });
+    SCR::Execute(.target.bash, sformat("cd %1 && " +
+                "/usr/bin/create_package_descr -x setup/descr/EXTRA_PROV",
+                basedir));
+
+
+    
+    RestoreOriginalStatus();
+    return true;
+}
+
+
+
+global define boolean readControlFile(string filename) ``{
+
+    if (profile_parsed)
+        return true;
+    if (!Profile::ReadXML(filename))
+    {
+        Report::Error(_("Error reading control file."));
+        return false;
+    }
+
+    map software = Profile::current["install", "software"]:$[];
+    Config["base"] = software["base"]:"";
+    Config["addons"] = software["addons"]:[];
+    PackageAI::toinstall = software["packages"]:[];
+    Config["packages"] = AutoinstSoftware::autoinstPackages();
+    y2debug("Config: %1", Config );
+    profile_parsed = true;
+    return true;
+}
+
+/**
+ * Constructor
+ */
+global define void CDCreator() ``{
+    configSetup();
+    AYRepository = Misc::SysconfigRead( .sysconfig.autoinstall.REPOSITORY, 
+            "/var/lib/autoinstall/repository/");
+
+    // Store original status
+    old_enabled = Pkg::SourceGetCurrent(true);
+    y2debug("old_enabled=%1", old_enabled );
+}
+
+
+/* EOF */
+}

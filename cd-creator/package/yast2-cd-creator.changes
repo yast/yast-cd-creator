@@ -1,0 +1,141 @@
+-------------------------------------------------------------------
+Thu Mar  2 14:39:13 CET 2006 - lslezak@suse.cz
+
+- removed yast2-devel-packages macro from .spec file
+- 2.13.0
+
+-------------------------------------------------------------------
+Tue Nov 29 09:10:03 CET 2005 - visnov@suse.cz
+
+- removed yast2-x11 build dependency
+- 2.12.4 
+
+-------------------------------------------------------------------
+Thu Jul 28 10:59:50 CEST 2005 - lslezak@suse.cz
+
+- updated desktop file
+- 2.12.3
+
+-------------------------------------------------------------------
+Wed Jul 20 12:36:48 CEST 2005 - lslezak@suse.cz
+
+- added missing HFS_mapping file
+- 2.12.2
+
+-------------------------------------------------------------------
+Wed Jul 20 11:49:27 CEST 2005 - arvin@suse.de
+
+- added yast2-storage-lib to neededforbuild
+- 2.12.1
+
+-------------------------------------------------------------------
+Tue May 10 14:40:03 CEST 2005 - lslezak@suse.cz
+
+- copy all available kernels into the CD image (#82776)
+- updated publisher string (#82778)
+- publisher option has been renamed (#82779)
+- PPC support (create bootable CD (#82798), copy required files
+  (#82803), added HFS file mapping (#82802), removed abuild
+  dependent parts (#82800))
+- 2.12.0
+
+-------------------------------------------------------------------
+Thu Feb 10 10:06:56 CET 2005 - visnov@suse.cz
+
+- Merged proofread texts
+
+-------------------------------------------------------------------
+Thu Feb 10 05:50:12 CET 2005 - nashif@suse.de
+
+- Merged back some fixes from SLES9
+
+-------------------------------------------------------------------
+Wed Feb  9 19:05:46 CET 2005 - nashif@suse.de
+
+- Save configuration data into /etc/YaST/cd-creator
+
+-------------------------------------------------------------------
+Tue Aug 31 13:15:49 CEST 2004 - sh@suse.de
+
+- merged proofread messages
+- 2.10.2
+
+-------------------------------------------------------------------
+Tue Aug 31 09:57:40 CEST 2004 - visnov@suse.cz
+
+- adapted for new AutoinstSoftware interface
+- 2.10.1
+
+-------------------------------------------------------------------
+Wed Aug 11 06:06:11 CEST 2004 - nashif@suse.de
+
+- Install required packages on demand
+- Added missing directory in spec file
+
+-------------------------------------------------------------------
+Sat May  8 16:36:00 CEST 2004 - nashif@suse.de
+
+- Use modified isolinux files from the CD
+
+-------------------------------------------------------------------
+Sat May  8 04:42:36 CEST 2004 - nashif@suse.de
+
+- Copy profile to created CD
+- Re-create package database
+
+-------------------------------------------------------------------
+Wed May  5 04:51:45 CEST 2004 - nashif@suse.de
+
+- If no kernel is selected, copy default kernel to CD
+- Fixe support for sources with multiple directories (CD1-5)
+- V. 2.9.10
+
+-------------------------------------------------------------------
+Fri Apr  2 17:32:18 CEST 2004 - nashif@suse.de
+
+- License changed to GPL
+
+-------------------------------------------------------------------
+Thu Apr  1 04:59:50 CEST 2004 - nashif@suse.de
+
+- Copy control.xml in save space mode
+
+-------------------------------------------------------------------
+Mon Mar 29 17:28:14 CEST 2004 - nashif@suse.de
+
+- Added missing files
+
+-------------------------------------------------------------------
+Tue Mar 16 23:41:01 CET 2004 - nashif@suse.de
+
+- Fixed reading autoyast files (#35862)
+- added help text to y2mkiso
+
+-------------------------------------------------------------------
+Wed Mar 10 01:52:15 CET 2004 - nashif@suse.de
+
+- Adapted for new wizard
+
+-------------------------------------------------------------------
+Mon Mar  8 17:16:37 CET 2004 - nashif@suse.de
+
+- Use right textdomain
+- More type fixes
+- 2.9.4
+
+-------------------------------------------------------------------
+Fri Mar  5 16:23:11 CET 2004 - nashif@suse.de
+
+- stricter typing
+- 2.9.3
+
+-------------------------------------------------------------------
+Mon Mar  1 16:17:38 CET 2004 - nashif@suse.de
+
+- Merged proogread texts
+- Some type fixes
+
+-------------------------------------------------------------------
+Sun Jan 11 13:26:39 2004 - nashif@suse.de
+
+- initial version

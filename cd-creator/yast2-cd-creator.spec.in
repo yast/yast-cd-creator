@@ -1,0 +1,36 @@
+@HEADER-COMMENT@
+
+@HEADER@
+BuildRequires:	perl-XML-Writer update-desktop-files yast2 yast2-devtools yast2-testsuite yast2-packager autoyast2-installation
+Requires:	yast2 yast2-packager autoyast2-installation
+
+BuildArchitectures:	noarch
+
+Summary:	Configuration of CD-creator
+
+%description
+-
+
+@PREP@
+
+@BUILD@
+
+@INSTALL@
+
+install -d $RPM_BUILD_ROOT/var/lib/YaST2/cd-creator
+
+@CLEAN@
+
+%files
+%defattr(-,root,root)
+%dir @yncludedir@/cd-creator
+@yncludedir@/cd-creator/*
+@clientdir@/cd-creator.ycp
+@moduledir@/*.ycp
+@moduledir@/*.ybc
+@desktopdir@/cd-creator.desktop
+/usr/bin/y2mkiso
+%doc @docdir@
+%dir @ydatadir@/cd-creator
+@ydatadir@/cd-creator/*
+#%dir /etc/YaST2/cd-creator
