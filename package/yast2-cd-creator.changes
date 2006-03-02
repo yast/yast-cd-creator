@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Mar  2 14:39:13 CET 2006 - lslezak@suse.cz
+
+- removed yast2-devel-packages macro from .spec file
+- 2.13.0
+
+-------------------------------------------------------------------
 Tue Nov 29 09:10:03 CET 2005 - visnov@suse.cz
 
 - removed yast2-x11 build dependency
