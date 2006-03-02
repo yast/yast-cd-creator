@@ -454,13 +454,11 @@
 
 
         term contents =
-            `Top(
-                    `VBox(
-                        table,
-                        `VSpacing(0.5),
-                        buttons
-                        )
-                );
+	    `VBox(
+		table,
+		`VSpacing(0.5),
+		buttons
+	    );
 
         Wizard::SetContentsButtons(caption, contents, HELPS["sourceDialog"]:"",
                 Label::BackButton(), Label::NextButton());
