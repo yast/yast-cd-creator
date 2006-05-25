@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu May 25 15:27:24 CEST 2006 - lslezak@suse.cz
+
+- fixed URL -> sourceID conversion
+- copy all required files from /boot
+- fixed source handling
+
+-------------------------------------------------------------------
 Thu May 25 07:26:22 CEST 2006 - lslezak@suse.cz
 
 - replace tabs by spaces in isolinux.cfg file in ncurses UI

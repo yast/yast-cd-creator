@@ -359,9 +359,8 @@ Fix the problem and try again.</p>
             Pkg::TargetFinish ();
 
             string tmp = (string)SCR::Read( .target.tmpdir );
-            SCR::Execute(.target.mkdir, tmp + "/tmproot");
-            Pkg::TargetInit( tmp + "/tmproot" , true);
-
+//            SCR::Execute(.target.mkdir, tmp + "/tmproot");
+//            Pkg::TargetInit( tmp + "/tmproot" , true);
 
             success =  CDCreator::EnableSource();
 
