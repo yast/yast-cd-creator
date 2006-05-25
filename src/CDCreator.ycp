@@ -19,7 +19,6 @@ import "Progress";
 import "Report";
 import "Summary";
 import "XML";
-import "SourceManager";
 import "URL";
 import "Misc";
 import "Directory";
@@ -90,6 +89,29 @@ global define boolean Modified() ``{
 
 include "cd-creator/routines.ycp";
 
+global define list<integer> UrlToId(list<string> urls)
+{
+    // all sources
+    list<integer> all = Pkg::SourceGetCurrent(false);
+
+    list<integer> sources = maplist(string url , urls,
+    {
+	integer id = -1;
+	foreach (integer i, all,
+	{
+	    map generalData = Pkg::SourceGeneralData(i);
+	    if (generalData["url"]:"" == url)
+	    {
+		id = i;
+		break;
+	    }
+	});
+
+	return id;
+    });
+
+    return sources;
+}
 
 
 map ReadContentFile(string content) {
@@ -379,6 +401,7 @@ global define boolean  CreateSkeleton () ``{
     boolean savespace = Config["savespace"]:false;
     boolean sp = false;
     string sles_path = "";
+    string descr_dir = "";
     string arch = Arch::architecture();
 
     // Create skeleton directory
@@ -394,9 +417,26 @@ global define boolean  CreateSkeleton () ``{
     string source = "";
     string descrDir = "";
     string dataDir = "";
-    boolean first = true;
 
-    
+    if (Arch::i386() || Arch::x86_64())
+    {
+	if (Config["code10"]:false)
+	{
+	    commands= add(commands, sformat("/bin/mkdir -p %1/boot/%2/loader", skel_root, arch));
+	}
+	else
+	{
+	    commands= add(commands, sformat("/bin/mkdir -p %1/boot/loader", skel_root));
+	}
+    }
+    else if (Arch::ppc() || Arch::ppc64())
+    {
+	// TODO: if (Config["code10"]:false)
+	commands= add(commands, sformat("/bin/mkdir -p %1/etc", skel_root));
+	commands= add(commands, sformat("/bin/mkdir -p %1/ppc", skel_root));
+	commands= add(commands, sformat("/bin/mkdir -p %1/suseboot", skel_root));
+    }
+
     foreach(integer id, enabled, ``{
 	
 	map this_source = meta[id]:$[];
@@ -407,35 +447,13 @@ global define boolean  CreateSkeleton () ``{
 	    return false;
 
 	y2internal("source: %1", source);
+	descr_dir = this_source["productData","descrdir"]:"suse/setup/descr";
 
-	if (first)
-	{
-	    if (Arch::i386() || Arch::x86_64())
-	    {
-		if (Config["code10"]:false)
-		{
-		    commands= add(commands, sformat("/bin/mkdir -p %1/boot/%2/loader", skel_root, arch));
-		}
-		else
-		{
-		    commands= add(commands, sformat("/bin/mkdir -p %1/boot/loader", skel_root));
-		}
-	    }
-	    else if (Arch::ppc() || Arch::ppc64())
-	    {
-		// TODO: if (Config["code10"]:false)
-		commands= add(commands, sformat("/bin/mkdir -p %1/etc", skel_root));
-		commands= add(commands, sformat("/bin/mkdir -p %1/ppc", skel_root));
-		commands= add(commands, sformat("/bin/mkdir -p %1/suseboot", skel_root));
-	    }
-
-	    first = false;
-	}
-	
 	y2debug("content: %1", meta_local);
 	if (this_source["productData","baseproductname"]:"" != "" &&
 	    issubstring(meta_local["FLAGS"]:"", "SP"))
 	{
+	    y2internal("Service pack detected");
 	    y2debug("this source: %1", this_source );
 	    descrDir = this_source["productData","descrdir"]:"suse/setup/descr";
 	    dataDir  = this_source["productData", "datadir"]:"suse";
@@ -458,6 +476,7 @@ global define boolean  CreateSkeleton () ``{
 		    if (Config["code10"]:false)
 		    {
 			commands= add(commands, sformat("/bin/cp  %1/boot/%3/loader/* %2/boot/%3/loader", source, skel_root, arch));
+			commands= add(commands, sformat("/bin/cp  %1/boot/%3/* %2/boot/%3", source, skel_root, arch));
 		    }
 		    else
 		    {
@@ -501,9 +520,10 @@ global define boolean  CreateSkeleton () ``{
 	else if  (this_source["productData","baseproductname"]:"" != "" )
 	{
 	    // SLES
+	    y2internal("SLES source detected");
 
 	    sles_path = source;
-	    y2debug("this source: %1", this_source );
+	    y2internal("this source: %1", this_source );
 	    descrDir = this_source["productData","descrdir"]:"suse/setup/descr";
 	    dataDir  = this_source["productData", "datadir"]:"suse";
 	    y2debug("source data: %1", this_source["sourceData", "url"]:"" );
@@ -519,6 +539,7 @@ global define boolean  CreateSkeleton () ``{
 		if (Config["code10"]:false)
 		{
 		    commands= add(commands, sformat("/bin/cp  %1/boot/%3/root %2/boot/%3", source, skel_root, arch));
+		    commands= add(commands, sformat("/bin/cp  %1/boot/%2/root.fonts %3/boot/%2", source, arch, skel_root));
 		    commands= add(commands, sformat("/bin/cp  %1/boot/%3/rescue %2/boot/%3", source, skel_root, arch));
 		}
 		else
@@ -541,6 +562,8 @@ global define boolean  CreateSkeleton () ``{
 
 		commands= add(commands, sformat("/bin/cp  %1/* %2", source, skel_root));
 	    }
+
+	    y2internal("source: %1, descrDir: %2, skel_root: %3", source, descrDir, skel_root);
 	    // Descriptions, Selections and package databases
 	    commands= add(commands,
 			  sformat("/bin/cp -a %1/%2/* %3/%4",
@@ -556,22 +579,48 @@ global define boolean  CreateSkeleton () ``{
 
 	    
 	}
+	else
+	{
+	    commands= add(commands, sformat("/bin/cp  %1/* %2", source, skel_root));
+	}
     });
     
 
     if (!sp)
     {
-	source = sles_path;
+	y2internal("NOT SP");
+
+	if (sles_path != "")
+	{
+	    source = sles_path;
+	}
+
+	if (descrDir == "")
+	{
+	    descrDir = descr_dir;
+	}
+
 	if (savespace)
 	{
-	    // Installation, rescue images		
-	    commands= add(commands, sformat("/bin/cp  %1/boot/rescue %2/boot", source, skel_root));
+	    // Installation, rescue images
+	    if (Config["code10"]:false)
+	    {
+		commands= add(commands, sformat("/bin/cp  %1/boot/%2/rescue %3/boot/%2", source, arch, skel_root));
+		commands= add(commands, sformat("/bin/cp  %1/boot/%2/root %3/boot/%2", source, arch, skel_root));
+		commands= add(commands, sformat("/bin/cp  %1/boot/%2/root.fonts %3/boot/%2", source, arch, skel_root));
+	    }
+	    else
+	    {
+		commands= add(commands, sformat("/bin/cp  %1/boot/rescue %2/boot", source, skel_root));
+	    }
+
 	    // Loader, x86 specific
 	    if (Arch::i386() || Arch::x86_64())
 	    {
 		if (Config["code10"]:false)
 		{
 		    commands= add(commands, sformat("/bin/cp  %1/boot/%3/loader/* %2/boot/%3/loader", source, skel_root, arch));
+		    commands= add(commands, sformat("/bin/cp  %1/boot/* %2/boot/", source, skel_root));
 		}
 		else
 		{
@@ -588,8 +637,9 @@ global define boolean  CreateSkeleton () ``{
 		
 	}	
     }
-    
+
     // Descriptions, Selections and package databases
+    commands= add(commands, sformat("/bin/mkdir -p %1/%2", skel_root, descrDir));
     commands= add(commands,
 		  sformat("/bin/cp -a %1/%2/* %3/%4",
 			  source,
@@ -597,6 +647,8 @@ global define boolean  CreateSkeleton () ``{
 			  skel_root,
 			  descrDir)
 		  );
+
+    y2internal("source: %1, descrDir: %2, skel_root: %3", source, descrDir, skel_root);
 
     // Prepare media files
     commands= add(commands, sformat("/bin/cp -a %1/media.1  %2", source, skel_root));
@@ -615,6 +667,8 @@ global define boolean  CreateSkeleton () ``{
     integer count = 1;
 
     commands= add(commands, sformat("/bin/echo %1 >> %2/media.1/media ", count,  skel_root));
+
+    y2internal("all commands: %1", mergestring(commands, "\n"));
 
     foreach (string c, commands, ``{
         y2milestone("command: %1", c);
@@ -671,11 +725,10 @@ global define boolean CopyMiscFiles() ``{
  * @return true on success
  */
 global define boolean EnableSource() ``{
+    y2internal("Config: %1", Config);
     enableSources();
-    list<integer> sources = maplist(string url , CDCreator::Config["sources"]:[], ``{
-	integer i = SourceManager::getSourceId(url);
-	return (i);
-    });
+
+    list<integer> sources = UrlToId(CDCreator::Config["sources"]:[]);
 
     list ids = Pkg::SourceStartCache(true);
 
@@ -728,11 +781,7 @@ global define list<term> GetDirSources(string source) ``{
  */
 global define list checkProductDependency() ``{
 
-    list<integer> sources =  maplist(string url , Config["sources"]:[], ``{
-	integer i = SourceManager::getSourceId(url);
-	UI::ChangeWidget(`id(`table), `Item(i, 0) , _("X"));
-	return (i);
-    });
+    list<integer> sources = UrlToId(Config["sources"]:[]);
 
     list<map> products = maplist(integer id , sources, ``{
 	map generalData = Pkg::SourceGeneralData( id );
@@ -788,18 +837,20 @@ global define void RestoreOriginalStatus()
 
 global define void enableSources()``{
 
-    list<integer> sources = maplist(string url , CDCreator::Config["sources"]:[], ``{
-            integer i = SourceManager::getSourceId(url);
-            return (i);
-            });
+    Pkg::SourceStartManager(false);
+
+    y2internal("sources: %1", CDCreator::Config["sources"]:[]);
+
+    list<integer> sources = UrlToId(CDCreator::Config["sources"]:[]);
+    y2internal("source IDs: %1", sources);
 
     foreach(integer id , Pkg::SourceGetCurrent(true), ``{
 		y2milestone("Disabling source %1", id);
                 Pkg::SourceSetEnabled (id, false);
-		if (!contains(sources, id))
-		{
-		    Pkg::SourceFinish(id);
-		}
+//		if (!contains(sources, id))
+//		{
+//		    Pkg::SourceFinish(id);
+//		}
 	});
 
 

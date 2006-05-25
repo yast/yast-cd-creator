@@ -466,11 +466,11 @@
                 Label::BackButton(), Label::NextButton());
 
 
-        list<integer> selected_items = maplist(string url , CDCreator::Config["sources"]:[], ``{
-                integer i = SourceManager::getSourceId(url);
-                UI::ChangeWidget(`id(`table), `Item(i, 0) , _("X"));
-                return (i);
-                });
+        list<integer> selected_items = CDCreator::UrlToId(CDCreator::Config["sources"]:[]);
+
+	foreach(integer i, selected_items, {
+            UI::ChangeWidget(`id(`table), `Item(i, 0) , _("X"));
+        });
 
         any ret = nil;
 
@@ -781,6 +781,8 @@ more <b>add-on</b> selections and packages.
 	{
 	    y2milestone("No selections, using patterns");
 	    using_patterns = true;
+
+	    // TODO: select already selected patterns!
 
 	    list<string> available_patterns = Pkg::GetPatterns( `available, "" );
 	    y2milestone ("available_patterns %1", available_patterns);
