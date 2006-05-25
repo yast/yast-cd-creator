@@ -14,8 +14,7 @@ textdomain "cd-creator";
 import "Wizard";
 import "Popup";
 import "Package";
-
-include "wizard/sequencer.ycp";
+import "Sequencer";
 
 include "cd-creator/complex.ycp";
 include "cd-creator/dialogs.ycp";
@@ -75,7 +74,7 @@ define symbol AddSequence() ``{
 
     ];
 
-    return WizardSequencer( aliases, sequence );
+    return Sequencer::Run( aliases, sequence );
 }
 /**
  * Create a CD image tree and ISO image
@@ -103,7 +102,7 @@ define symbol CreateSequence() ``{
 
     ];
 
-    return WizardSequencer( aliases, sequence );
+    return Sequencer::Run( aliases, sequence );
 }
 
 /**
@@ -128,7 +127,8 @@ define symbol MainSequence() ``{
 	    `abort	: `abort,
 	    `add	: "add",
 	    `edit	: "edit",
-	    `create	: "create"
+	    `create	: "create",
+	    `next	: `next
 	],
 	"configure" : $[
 	    `abort	: `abort,
@@ -148,7 +148,7 @@ define symbol MainSequence() ``{
 	]
     ];
 
-   symbol ret = WizardSequencer(aliases, sequence);
+   symbol ret = Sequencer::Run(aliases, sequence);
 
     return ret;
 }
@@ -188,7 +188,7 @@ failed."));
         return `abort;
     }
 
-    symbol ret = WizardSequencer(aliases, sequence);
+    symbol ret = Sequencer::Run(aliases, sequence);
 
     UI::CloseDialog();
     return ret;

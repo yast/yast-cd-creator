@@ -27,6 +27,7 @@ import "Profile";
 import "AutoinstSoftware";
 import "Arch";
 import "PackageAI";
+import "String";
 
 
 global define void enableSources();
@@ -202,6 +203,13 @@ global define boolean Write() ``{
 
     list c = PrepareConfigs();
     map xml = $["configurations": c];
+
+    if (SCR::Read(.target.size, Rep) < 0)
+    {
+	SCR::Execute(.target.bash, "mkdir -p " + Rep);
+    }
+
+    y2internal("Writing XML file %1: %2", ConfigFile, xml);
     boolean ret = XML::YCPToXMLFile(`cdcreator, xml, ConfigFile);
 
     // translators: error message
@@ -315,10 +323,25 @@ global define string Readisolinux() ``{
     else
     {
         string dir = getSourceDir(Config["sources", 0]:"" );
-        bootconfig_path = sformat("%1/boot/loader/isolinux.cfg", dir );
+	string arch = Arch::architecture();
+        bootconfig_path = sformat("%1/boot/%2/loader/isolinux.cfg", dir, arch);
+
+	if (SCR::Read(.target.size, bootconfig_path) < 0)
+	{
+	    // try the old path as a fallback
+	    bootconfig_path = sformat("%1/boot/loader/isolinux.cfg", dir );
+	}
     }
     if (SCR::Read(.target.size, bootconfig_path) != -1 )
           bootconfig = (string)SCR::Read(.target.string, bootconfig_path );
+
+    // replace tabs by spaces in ncurses UI (workaround for #142509)
+    if (UI::GetDisplayInfo()["TextMode"]:false == true)
+    {
+	// tab -> 8 spaces
+	bootconfig = String::Replace(bootconfig, "\t", "        ");
+    }
+
     return bootconfig;
 }
 
@@ -350,32 +373,20 @@ global define void configSetup()
  */
 global define boolean  CreateSkeleton () ``{
 
-
     list<string> commands = [];
     integer ret = 0;
     boolean success = true;
     boolean savespace = Config["savespace"]:false;
     boolean sp = false;
     string sles_path = "";
+    string arch = Arch::architecture();
 
     // Create skeleton directory
     skel_root = sformat("%1/%2", Config["iso-directory"]:"", Config["name"]:"");
     SCR::Execute(.target.mkdir, skel_root);
 
-    commands= add(commands, sformat("/bin/mkdir -p %1/boot", skel_root));
-    
-    if (Arch::i386() || Arch::x86_64())
-    {
-	commands= add(commands, sformat("/bin/mkdir -p %1/boot/loader", skel_root));
-    }
-    if (Arch::ppc() || Arch::ppc64())
-    {
-	commands= add(commands, sformat("/bin/mkdir %1/etc", skel_root));
-	commands= add(commands, sformat("/bin/mkdir %1/ppc", skel_root));
-	commands= add(commands, sformat("/bin/mkdir %1/suseboot", skel_root));
-    }
+    commands= add(commands, sformat("/bin/mkdir -p %1/boot/%2", skel_root, arch));
 
-    
     list<integer> enabled = Pkg::SourceGetCurrent(true);
     if (size(enabled) == 0 )
         return false;
@@ -383,6 +394,8 @@ global define boolean  CreateSkeleton () ``{
     string source = "";
     string descrDir = "";
     string dataDir = "";
+    boolean first = true;
+
     
     foreach(integer id, enabled, ``{
 	
@@ -392,6 +405,32 @@ global define boolean  CreateSkeleton () ``{
 
 	if (source == "")
 	    return false;
+
+	y2internal("source: %1", source);
+
+	if (first)
+	{
+	    if (Arch::i386() || Arch::x86_64())
+	    {
+		if (Config["code10"]:false)
+		{
+		    commands= add(commands, sformat("/bin/mkdir -p %1/boot/%2/loader", skel_root, arch));
+		}
+		else
+		{
+		    commands= add(commands, sformat("/bin/mkdir -p %1/boot/loader", skel_root));
+		}
+	    }
+	    else if (Arch::ppc() || Arch::ppc64())
+	    {
+		// TODO: if (Config["code10"]:false)
+		commands= add(commands, sformat("/bin/mkdir -p %1/etc", skel_root));
+		commands= add(commands, sformat("/bin/mkdir -p %1/ppc", skel_root));
+		commands= add(commands, sformat("/bin/mkdir -p %1/suseboot", skel_root));
+	    }
+
+	    first = false;
+	}
 	
 	y2debug("content: %1", meta_local);
 	if (this_source["productData","baseproductname"]:"" != "" &&
@@ -404,12 +443,26 @@ global define boolean  CreateSkeleton () ``{
 	     // Service Pack
 	    if (savespace)
 	    {
-		// Installation, rescue images		
-		commands= add(commands, sformat("/bin/cp  %1/boot/rescue %2/boot", source, skel_root));
+		// Installation, rescue images
+		if (Config["code10"]:false)
+		{
+		    commands= add(commands, sformat("/bin/cp  %1/boot/%3/rescue %2/boot/%3", source, skel_root, arch));
+		}
+		else
+		{
+		    commands= add(commands, sformat("/bin/cp  %1/boot/rescue %2/boot", source, skel_root));
+		}
 		// Loader, x86 specific
 		if (Arch::i386() || Arch::x86_64())
 		{
-		    commands= add(commands, sformat("/bin/cp  %1/boot/loader/* %2/boot/loader", source, skel_root));
+		    if (Config["code10"]:false)
+		    {
+			commands= add(commands, sformat("/bin/cp  %1/boot/%3/loader/* %2/boot/%3/loader", source, skel_root, arch));
+		    }
+		    else
+		    {
+			commands= add(commands, sformat("/bin/cp  %1/boot/loader/* %2/boot/loader", source, skel_root));
+		    }
 		}
 		else if (Arch::ppc() || Arch::ppc64())
 		{
@@ -463,12 +516,29 @@ global define boolean  CreateSkeleton () ``{
 	    if (savespace)
 	    {
 		// Installation, rescue images
-		commands= add(commands, sformat("/bin/cp  %1/boot/root %2/boot", source, skel_root));
-		commands= add(commands, sformat("/bin/cp  %1/boot/rescue %2/boot", source, skel_root));
-		commands= add(commands, sformat("/bin/cp  %1/content %2", source, skel_root));
+		if (Config["code10"]:false)
+		{
+		    commands= add(commands, sformat("/bin/cp  %1/boot/%3/root %2/boot/%3", source, skel_root, arch));
+		    commands= add(commands, sformat("/bin/cp  %1/boot/%3/rescue %2/boot/%3", source, skel_root, arch));
+		}
+		else
+		{
+		    commands= add(commands, sformat("/bin/cp  %1/boot/root %2/boot", source, skel_root));
+		    commands= add(commands, sformat("/bin/cp  %1/boot/rescue %2/boot", source, skel_root));
+		}
+
+		commands= add(commands, sformat("/bin/cp  %1/content* %2", source, skel_root));
 		commands= add(commands, sformat("/bin/cp  %1/control.xml %2", source, skel_root));
 	    } else {
-		commands= add(commands, sformat("/bin/cp  %1/boot/root %2/boot", source, skel_root));
+		if (Config["code10"]:false)
+		{
+		    commands= add(commands, sformat("/bin/cp  %1/boot/%3/root %2/boot/%3", source, skel_root, arch));
+		}
+		else
+		{
+		    commands= add(commands, sformat("/bin/cp  %1/boot/root %2/boot", source, skel_root));
+		}
+
 		commands= add(commands, sformat("/bin/cp  %1/* %2", source, skel_root));
 	    }
 	    // Descriptions, Selections and package databases
@@ -499,7 +569,14 @@ global define boolean  CreateSkeleton () ``{
 	    // Loader, x86 specific
 	    if (Arch::i386() || Arch::x86_64())
 	    {
-		commands= add(commands, sformat("/bin/cp  %1/boot/loader/* %2/boot/loader", source, skel_root));
+		if (Config["code10"]:false)
+		{
+		    commands= add(commands, sformat("/bin/cp  %1/boot/%3/loader/* %2/boot/%3/loader", source, skel_root, arch));
+		}
+		else
+		{
+		    commands= add(commands, sformat("/bin/cp  %1/boot/loader/* %2/boot/loader", source, skel_root));
+		}
 	    } else {
 		commands= add(commands, sformat("/bin/cp  %1/boot/* %2/boot/", source, skel_root));
 	    }
@@ -540,7 +617,7 @@ global define boolean  CreateSkeleton () ``{
     commands= add(commands, sformat("/bin/echo %1 >> %2/media.1/media ", count,  skel_root));
 
     foreach (string c, commands, ``{
-        y2debug("command: %1", c);
+        y2milestone("command: %1", c);
 	ret = (integer)SCR::Execute (.target.bash, c);
     });
 
@@ -556,24 +633,31 @@ global define boolean  CreateSkeleton () ``{
 global define boolean CopyMiscFiles() ``{
 
     string cpCmd = "";
+    string arch = Arch::architecture();
     y2debug("isolinux.cfg: %1", Config["bootconfig"]:"" );
     if (Config["bootconfig"]:"" != "") 
     {
         y2debug("custom config available");
-        SCR::Write(.target.string, 
-                sformat("%1/boot/loader/isolinux.cfg", skel_root), 
-                Config["bootconfig"]:"" );
+
+	string fname = (Config["code10"]:false)
+	    ? sformat("%1/boot/%2/loader/isolinux.cfg", skel_root, arch)
+	    : sformat("%1/boot/loader/isolinux.cfg", skel_root);
+
+        SCR::Write(.target.string, fname, Config["bootconfig"]:"" );
         /*
         string cpCmd = sformat("cp %1/cd-creator/isolinux.cfg %2/boot/loader",
             Directory::datadir, skel_root);
         SCR::Execute (.target.bash, cpCmd);
             */
     }
-    cpCmd = sformat("cp %1/cd-creator/message %2/boot/loader",
-            Directory::datadir, skel_root);
+    cpCmd = (Config["code10"]:false)
+	? sformat("cp %1/cd-creator/message %2/boot/%3/loader", Directory::datadir, skel_root, arch)
+	: sformat("cp %1/cd-creator/message %2/boot/loader", Directory::datadir, skel_root);
     SCR::Execute (.target.bash, cpCmd);
-    cpCmd = sformat("cp %1/cd-creator/options.msg %2/boot/loader",
-            Directory::datadir, skel_root);
+
+    cpCmd = (Config["code10"]:false)
+	? sformat("cp %1/cd-creator/options.msg %2/boot/%3/loader", Directory::datadir, skel_root, arch)
+	: sformat("cp %1/cd-creator/options.msg %2/boot/loader", Directory::datadir, skel_root);
     SCR::Execute (.target.bash, cpCmd);
 
 
@@ -592,9 +676,12 @@ global define boolean EnableSource() ``{
 	integer i = SourceManager::getSourceId(url);
 	return (i);
     });
+
     list ids = Pkg::SourceStartCache(true);
+
     if (size(ids) == 0 )
 	return false;
+
     foreach(integer i , sources, ``{
 	map<string, any> m = $[];
 	m["productData"] = Pkg::SourceProductData(i);
@@ -683,31 +770,49 @@ global define list checkProductDependency() ``{
 
 global define void RestoreOriginalStatus()
 {
+    y2internal("RestoreOriginalStatus called");
+//    Pkg::SourceStartManager(true);
+
     list<integer> current_enabled = Pkg::SourceGetCurrent(true);
     foreach(integer id , current_enabled, ``{
+		y2milestone("Disabling source %1", id);
                 Pkg::SourceSetEnabled (id, false);
 	});
-    foreach(integer id , old_enabled, ``{
+/*    foreach(integer id , old_enabled, ``{
                 Pkg::SourceSetEnabled (id, true);
+		y2milestone("Enabling source %1", id);
 		Pkg::SourceFinish(id);
 	});
+*/
 }
 
 global define void enableSources()``{
 
-    foreach(integer id , old_enabled, ``{
-                Pkg::SourceSetEnabled (id, false);
-		Pkg::SourceFinish(id);
-	});
     list<integer> sources = maplist(string url , CDCreator::Config["sources"]:[], ``{
             integer i = SourceManager::getSourceId(url);
             return (i);
             });
 
+    foreach(integer id , Pkg::SourceGetCurrent(true), ``{
+		y2milestone("Disabling source %1", id);
+                Pkg::SourceSetEnabled (id, false);
+		if (!contains(sources, id))
+		{
+		    Pkg::SourceFinish(id);
+		}
+	});
+
 
     foreach(integer id , sources, ``{
+		y2milestone("Enabling source %1", id);
 		Pkg::SourceSetEnabled(id, true);
 	});
+
+    Pkg::SourceStartManager(true);
+
+    y2milestone("All sources: %1", Pkg::SourceGetCurrent(false));
+    y2milestone("Enabled sources: %1", Pkg::SourceGetCurrent(true));
+
     return;
 }
 
@@ -746,19 +851,36 @@ global define boolean setPackages() ``{
     }
 
 
-
-    // Base Selection
-    if (base!="")
+    if (Config["type"]:`unknown == `patterns)
     {
-	Pkg::SetSelection(base);
+	// base pattern
+	if (base != "")
+	{
+	    Pkg::ResolvableInstall(base, `pattern);
+	}
+
+	if (size(addons) > 0 )
+	{
+	    foreach(string p, addons, ``{
+		Pkg::ResolvableInstall(p, `pattern);
+	    });
+	}
     }
-
-    // Addons
-    if (size(addons) > 0 )
+    else
     {
-	foreach(string s, addons, ``{
-	    Pkg::SetSelection(s);
-	});
+	// Base Selection
+	if (base!="")
+	{
+	    Pkg::SetSelection(base);
+	}
+
+	// Addons
+	if (size(addons) > 0 )
+	{
+	    foreach(string s, addons, ``{
+		Pkg::SetSelection(s);
+	    });
+	}
     }
 
     packages = (list<string>) union(packages, post_packages);
@@ -768,9 +890,7 @@ global define boolean setPackages() ``{
 
     Pkg::DoProvide(packages);
 
-    boolean ret = Pkg::ActivateSelections();
-
-    Pkg::PkgSolve(false);
+    boolean ret = Pkg::PkgSolve(false);
 
     return (ret);
 }
@@ -907,9 +1027,7 @@ Check the created directory for possible hints."));
                 "/usr/bin/create_package_descr -x setup/descr/EXTRA_PROV",
                 basedir));
 
-
-    
-    RestoreOriginalStatus();
+    // RestoreOriginalStatus();
     return true;
 }
 
@@ -943,9 +1061,9 @@ global define void CDCreator() ``{
     AYRepository = Misc::SysconfigRead( .sysconfig.autoinstall.REPOSITORY, 
             "/var/lib/autoinstall/repository/");
 
-    // Store original status
-    old_enabled = Pkg::SourceGetCurrent(true);
-    y2debug("old_enabled=%1", old_enabled );
+//    // Store original status
+//    old_enabled = Pkg::SourceGetCurrent(true);
+//    y2debug("old_enabled=%1", old_enabled );
 }
 
 

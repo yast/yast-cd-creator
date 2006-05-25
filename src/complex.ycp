@@ -250,8 +250,9 @@
                     string pub = CDCreator::Config["publisher"]:"anon";
                     string prep = CDCreator::Config["preparer"]:"anon";
 
-                    string du = lookup((map)SCR::Execute(.target.bash_output, sformat("du -s -b %1 | awk -F' ' ' { printf $1 }'", isodir )), "stdout", "");
-                    y2debug("Expected size: %1", du);
+		    map output = (map)SCR::Execute(.target.bash_output, sformat("du -s -b %1 | awk -F' ' ' { printf $1 }'", isodir ));
+                    string du = output["stdout"]:"";
+                    y2milestone("Expected size: %1", du);
                     Popup::ShowFeedback(_("Creating CD Image..."), _("This may take a while"));
                     SCR::Execute (.target.bash, "/usr/bin/y2mkiso $ISODIR $ISOFILE", $["ISOFILE": isofile, "ISODIR": isodir, "CD_PUBLISHER": pub, "CD_PREPARER": prep ]);
                     Popup::ClearFeedback();
