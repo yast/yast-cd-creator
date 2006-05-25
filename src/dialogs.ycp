@@ -16,7 +16,8 @@
     import "SourceManager";
     import "Report";
     import "URL";
-
+    import "StorageDevices";
+    import "Arch";
     import "Label";
 
     include "cd-creator/helps.ycp";
@@ -417,7 +418,8 @@
                                  CDCreator::Config["preparer"] = (string)UI::QueryWidget(`id(`prep), `Value);
                                  break;
                              }
-                             else {
+                             else if (ret != `directory && ret != `isofile)
+			     {
                                  y2error("unexpected retcode: %1", ret);
                                  continue;
                              }
@@ -533,15 +535,13 @@
         string bootconfig = "isolinux.cfg";
 
         term contents =
-            `Top(
                     `VBox(
                         `MultiLineEdit(`id(`isolinux),
                             sformat(_("File Contents: %1"), bootconfig),
                             isolinux
                             ),
                         `PushButton(`id(`loadfile), _("Load File"))
-                        )
-                );
+                        );
 
 
         Wizard::SetContentsButtons(caption, contents, HELPS["bootconfig"]:"",
@@ -614,7 +614,7 @@
             // set the new selection
             y2debug("Config: %1", CDCreator::Config );
             boolean pkgret = Pkg::SetSelection( CDCreator::Config["base"]:"" );
-            Pkg::ActivateSelections();
+            Pkg::PkgSolve(true);
 
 
             foreach(string addon, CDCreator::Config["addons"]:[], ``{
@@ -627,7 +627,6 @@
                         y2debug("selecting package for installation: %1 -> %2", p, Pkg::PkgInstall(p));
                         });
             }
-            Pkg::ActivateSelections();
             Pkg::PkgSolve(true);
             list allpacs = Pkg::GetPackages(`selected, true);
             y2milestone("All packages: %1 ( %2 )", allpacs, size(allpacs));
@@ -637,13 +636,112 @@
     }
 
     /**
+     * Start the detailed package selection. If 'mode' is non-nil, it will be
+     * passed as an option to the PackageSelector widget.
+     *
+     * Returns `accept or `cancel .
+     **/
+    symbol detailedSelection( symbol mode )
+    {
+	Pkg::SaveState();
+
+	// Open empty dialog for instant feedback
+
+	UI::OpenDialog(`opt(`defaultsize),
+		       `ReplacePoint(`id( `rep),
+				     `Label( _("Reading package database...") )
+				     )
+		       );
+
+	// This will take a while: Detailed package data are retrieved
+	// while the package manager is initialized
+	UI::ReplaceWidget(`rep,
+			  mode == nil ?
+			  `PackageSelector(`id(`packages ), StorageDevices::FloppyDevice ) :
+			  `PackageSelector(`id(`packages ), `opt(mode), StorageDevices::FloppyDevice )
+			  );
+
+	symbol result = (symbol) UI::RunPkgSelection(`id(`packages ) );
+	UI::CloseDialog();
+	y2milestone( "Package selector returned  %1", result );
+
+	if (result == `accept)
+	    Pkg::ClearSaveState();
+	else
+	    Pkg::RestoreState(false);
+
+	return result;
+    }
+
+    /**
+     * Start the pattern selection dialog. If the UI does not support the
+     * PatternSelector, start the detailed selection with "selections" as the
+     * initial view.
+     **/
+    symbol patternSelection()
+    {
+	if ( ! UI::HasSpecialWidget(`PatternSelector ) ||
+	     UI::WizardCommand(`Ping() ) != true	 )
+	{
+	    return detailedSelection( nil );	// Fallback: detailed selection
+	}
+
+	// switch to packager textdomain, reuse the translations
+
+	// Help text for software patterns / selections dialog
+        string helptext = _("<p>
+Select one of the following <b>base</b> selections and click <i>Detailed<i> to add
+more <b>add-on</b> selections and packages.
+</p>");
+
+	Wizard::SetContents(
+			    /* dialog caption */
+			    _("Software Selection"),
+			    `PatternSelector(`id(`patterns ) ),
+			    helptext,
+			    true,	// has_back
+			    true );	// has_next
+
+	Wizard::SetDesktopIcon( "sw_single" );
+
+	symbol result = nil;
+
+	repeat
+	{
+	    result = (symbol) UI::RunPkgSelection(`id(`patterns ) );
+	    y2milestone( "Pattern selector returned %1", result );
+
+	    if ( result == `details )
+	    {
+		result = detailedSelection( nil );
+
+		if ( result == `cancel )
+		    // don't get all the way out - the user might just have
+		    // been scared of the gory details.
+		    result = nil;
+
+	    }
+
+	} until ( result == `cancel || result == `accept );
+
+	if (result == `accept)
+	{
+	    result = `next;
+	}
+
+	return result;
+    }
+
+    /**
      * Select packages
      * @return symbol
      */
     define symbol packageSelector() ``{
 
         any ret = nil;
-        string language = UI::GetLanguage(true);
+
+	// set a mount point - there is no use to display DU of the current system
+	Pkg::TargetInitDU([ $[ "name" : "/", "free" : 999*1024*1024 /* 999GB */, "used" : 0, "readonly" : false ] ]);
 
         /* dialog caption */
         string caption = _("Software Selection");
@@ -657,7 +755,6 @@ more <b>add-on</b> selections and packages.
 
         Popup::ShowFeedback(_("Reading data from Package Database..."), _("Please wait..."));
         CDCreator::enableSources();
-        Pkg::SourceStartManager(true);
 
         Popup::ClearFeedback();
 
@@ -672,137 +769,171 @@ more <b>add-on</b> selections and packages.
                 helptext, false, true);
 
         list<string> available_base_selections = Pkg::GetSelections( `available, "base" );
-        y2debug ("available_base_selections %1", available_base_selections);
+        y2milestone ("available_base_selections %1", available_base_selections);
 
         list<string> current_base_selections = Pkg::GetSelections( `selected, "base" );
-        y2debug ("current_base_selections %1", current_base_selections);
+        y2milestone ("current_base_selections %1", current_base_selections);
 
-        // save the current base selection
-        string save_selection = current_base_selections[0]:"default";
+	boolean using_patterns = false;
 
-        // Construct a box with radiobuttons for each software base configuration
-        term baseconfs_box = `VBox();
+	// use patterns instead of selections
+	if (size(available_base_selections) == 0)
+	{
+	    y2milestone("No selections, using patterns");
+	    using_patterns = true;
 
-        // sort available_base_selections by order
-        // $[ "order" : [ "name", "summary" ], .... ]
+	    list<string> available_patterns = Pkg::GetPatterns( `available, "" );
+	    y2milestone ("available_patterns %1", available_patterns);
 
-        map<string, list> sorted_base_selections = $[];
-        foreach( string selection, available_base_selections,
-                ``{
-                map selection_data = Pkg::SelectionData (selection);
-                if (selection_data != nil)
-                {
-                string order = selection_data["order"]:"";
-                // use selection name as sort criteria if not given
-                if (order == "")
-                {
-                order = selection;
-                }
-                sorted_base_selections[order] = [selection, selection_data["summary"]:("'"+selection+"'")];
-                }
-                });
-        // construct display box in order
-        boolean selected = false;
-        foreach(string  order, list data, sorted_base_selections,
-                ``{
-                {
-                if (CDCreator::Config["base"]:"" == "" && !selected)
-                {
-                CDCreator::Config["base"] = data[0]:"";
-                selected = true;
-                }
-                baseconfs_box = add( baseconfs_box, `Left(`RadioButton(`id(data[0]:""),     // id
-                            `opt(`notify, `autoShortcut),
-                            data[1]:"",              // descrption
-                            (data[0]:"" == CDCreator::Config["base"]:"")   )));
-                }
-                });
+	    // select default patterns
+	    foreach(string pat, available_patterns,
+		{
+		    map pat_prop = Pkg::PatternData(pat);
+		    y2internal("pattern: %1: %2", pat, pat_prop);
 
-        term contents = `HVSquash(
-                `VBox(
-                    `HSquash(
-                        `VBox(
-                            `Frame(
-                                // Frame caption for software selection
-                                _("Software"),
-                                `VBox(
-                                    `VSpacing(0.3),
-                                    `RadioButtonGroup(`id(`baseconf),`opt(`notify), baseconfs_box),
-                                    `VSpacing(0.3)
-                                    )
-                                ),
-                            `VSpacing(),
+		    if (pat_prop["default"]:false == true || pat == "default")
+		    {
+			y2internal("Selecting pattern: %1", pat);
+			Pkg::ResolvableInstall(pat, `pattern);
+		    }
+		}
+	    );
 
-                            // Push button that will pop up the detailed
-                            // software selection (e.g. Multimedia, Games,
-                            // KDE, Gnome, ... - not the individual packages!)
-                            `PushButton( `id(`details),  _("&Detailed selection...") )
-                            )
-                        )
-                    )
-                );
+	    // solve the dependencies of the default patterns
+	    Pkg::PkgSolve(true);
 
-        Wizard::SetContentsButtons(caption, contents, helptext,
-                Label::BackButton(), Label::NextButton());
+	    ret = patternSelection();
+	}
+	else
+	{
+	    // save the current base selection
+	    string save_selection = current_base_selections[0]:"default";
+
+	    // Construct a box with radiobuttons for each software base configuration
+	    term baseconfs_box = `VBox();
+
+	    // sort available_base_selections by order
+	    // $[ "order" : [ "name", "summary" ], .... ]
+
+	    map<string, list> sorted_base_selections = $[];
+	    foreach( string selection, available_base_selections,
+		    ``{
+		    map selection_data = Pkg::SelectionData (selection);
+		    if (selection_data != nil)
+		    {
+		    string order = selection_data["order"]:"";
+		    // use selection name as sort criteria if not given
+		    if (order == "")
+		    {
+		    order = selection;
+		    }
+		    sorted_base_selections[order] = [selection, selection_data["summary"]:("'"+selection+"'")];
+		    }
+		    });
+	    // construct display box in order
+	    boolean selected = false;
+	    foreach(string  order, list data, sorted_base_selections,
+		    ``{
+		    {
+		    if (CDCreator::Config["base"]:"" == "" && !selected)
+		    {
+		    CDCreator::Config["base"] = data[0]:"";
+		    selected = true;
+		    }
+		    baseconfs_box = add( baseconfs_box, `Left(`RadioButton(`id(data[0]:""),     // id
+				`opt(`notify, `autoShortcut),
+				data[1]:"",              // descrption
+				(data[0]:"" == CDCreator::Config["base"]:"")   )));
+		    }
+		    });
+
+	    term contents = `HVSquash(
+		    `VBox(
+			`HSquash(
+			    `VBox(
+				`Frame(
+				    // Frame caption for software selection
+				    _("Software"),
+				    `VBox(
+					`VSpacing(0.3),
+					`RadioButtonGroup(`id(`baseconf),`opt(`notify), baseconfs_box),
+					`VSpacing(0.3)
+					)
+				    ),
+				`VSpacing(),
+
+				// Push button that will pop up the detailed
+				// software selection (e.g. Multimedia, Games,
+				// KDE, Gnome, ... - not the individual packages!)
+				`PushButton( `id(`details),  _("&Detailed selection...") )
+				)
+			    )
+			)
+		    );
+
+	    Wizard::SetContentsButtons(caption, contents, helptext,
+		    Label::BackButton(), Label::NextButton());
 
 
 
-        boolean selret = false;
-        repeat
-        {
-            ret = Wizard::UserInput();
+	    boolean selret = false;
+	    repeat
+	    {
+		ret = Wizard::UserInput();
 
-            // get the newly selected base configuration
-            base_selection = (string) UI::QueryWidget( `id(`baseconf),`CurrentButton );
+		// get the newly selected base configuration
+		base_selection = (string) UI::QueryWidget( `id(`baseconf),`CurrentButton );
 
-            // Inform the package manager on `next about the new (only about a NEW) selection
-            // or if the selection has changed
+		// Inform the package manager on `next about the new (only about a NEW) selection
+		// or if the selection has changed
 
-            if (ret == `next)
-            {
-                // set the new selection
-                boolean pkgret = Pkg::SetSelection( base_selection );
-                if (size(CDCreator::Config["packages"]:[] ) > 0)
-                {
-                    foreach(string p, CDCreator::Config["packages"]:[], ``{
-                            y2debug("selecting package for installation: %1 -> %2", p, Pkg::PkgInstall(p));
-                            });
-                }
-            }
-            else if ( ret == `abort)
-            {
-                if(CDCreator::ReallyAbort()) break;
-                else continue;
-            }
-            else if ( ret == `details )
-            {
-                ret = `again;
+		if (ret == `next)
+		{
+		    // set the new selection
+		    boolean pkgret = Pkg::SetSelection( base_selection );
+		    if (size(CDCreator::Config["packages"]:[] ) > 0)
+		    {
+			foreach(string p, CDCreator::Config["packages"]:[], ``{
+				y2debug("selecting package for installation: %1 -> %2", p, Pkg::PkgInstall(p));
+				});
+		    }
+		}
+		else if ( ret == `abort)
+		{
+		    if(CDCreator::ReallyAbort()) break;
+		    else continue;
+		}
+		else if ( ret == `details )
+		{
+		    ret = `again;
 
-                Pkg::SetSelection( base_selection );
+		    Pkg::SetSelection( base_selection );
 
-                foreach(string addon, CDCreator::Config["addons"]:[], ``{
-                        Pkg::SetSelection( addon );
-                        });
+		    foreach(string addon, CDCreator::Config["addons"]:[], ``{
+			    Pkg::SetSelection( addon );
+			    });
 
-                Pkg::ActivateSelections();
-                if (size(CDCreator::Config["packages"]:[] ) > 0)
-                {
-                    foreach(string p,CDCreator::Config["packages"]:[] , ``{
-                            y2milestone("selecting package for installation: %1 -> %2", p, Pkg::PkgInstall(p));
-                            });
-                }
+		    Pkg::PkgSolve(true);
+		    if (size(CDCreator::Config["packages"]:[] ) > 0)
+		    {
+			foreach(string p,CDCreator::Config["packages"]:[] , ``{
+				y2milestone("selecting package for installation: %1 -> %2", p, Pkg::PkgInstall(p));
+				});
+		    }
 
-                while ( ret == `again )
-                {
-                    ret = (symbol)WFM::CallFunction( "inst_packages", [ true, true ] );
+		    while ( ret == `again )
+		    {
+			ret = (symbol)WFM::CallFunction( "inst_packages", [ true, true ] );
 
-                    if ( ret == `accept )
-                        ret = `next;
-                }
-            }
-        }  until ( ret == `next  || ret == `back);
+			if ( ret == `accept )
+			    ret = `next;
+		    }
+		}
+	    }  until ( ret == `next  || ret == `back);
+	}
 
-        Pkg::ActivateSelections();
+	// activate the selections
+        Pkg::PkgSolve(true);
         list allpacs = Pkg::GetPackages(`selected, true);
         y2milestone("All packages: %1 ( %2 )", allpacs, size(allpacs));
 
@@ -810,8 +941,16 @@ more <b>add-on</b> selections and packages.
         list selbase = [];
         if ( ret != `back )
         {
-            seladd =  Pkg::GetSelections(`selected, "");
-            selbase =  Pkg::GetSelections(`selected, "base");
+	    if (!using_patterns)
+	    {
+		seladd =  Pkg::GetSelections(`selected, "");
+		selbase =  Pkg::GetSelections(`selected, "base");
+	    }
+	    else
+	    {
+		seladd =  Pkg::GetPatterns(`selected, "");
+		selbase =  Pkg::GetPatterns(`selected, "base");
+	    }
         }
         else
         {
@@ -820,10 +959,26 @@ more <b>add-on</b> selections and packages.
         }
 
 
-
         CDCreator::Config["packages"] = Pkg::FilterPackages(false, false, true, true);
         CDCreator::Config["addons"] = seladd;
         CDCreator::Config["base"] =   selbase[0]:"";
+
+	// selections or patterns are used in the product
+        CDCreator::Config["type"] = using_patterns ? `patterns : `selections;
+
+	boolean code10 = false;
+	foreach (string url , CDCreator::Config["sources"]:[],
+	{
+            integer i = SourceManager::getSourceId(url);
+	    map sd = SourceManager::SourceData(i);
+	    map parsed = URL::Parse(sd["url"]:"");
+	    string source = parsed["path"]:"";
+
+	    code10 = code10 || SCR::Read(.target.size, source + "/boot/" + Arch::architecture()) >= 0;
+        });
+
+	// add code10 flag - /boot directory layout
+	CDCreator::Config["code10"] = code10;
 
         Wizard::CloseDialog();
         return (symbol)ret;

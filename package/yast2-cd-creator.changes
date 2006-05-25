@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Thu May 25 07:26:22 CEST 2006 - lslezak@suse.cz
+
+- replace tabs by spaces in isolinux.cfg file in ncurses UI
+  (workaround for #142509)
+- support patters (in addition to selections)
+- zypp integartion (fixed source handling)
+- use Sequencer:: instead of deprecated wizard/sequencer.ycp
+- detect code10 product (different /boot dir layout)
+
+-------------------------------------------------------------------
 Thu Mar  2 14:39:13 CET 2006 - lslezak@suse.cz
 
 - removed yast2-devel-packages macro from .spec file
