@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Fri May 26 14:35:46 CEST 2006 - lslezak@suse.cz
+
+- create bootable CD (code10 support)
+- don't add the same source multiple times into source list
+- change of a configuration - preselect patterns/packages
+- 2.13.1
+
+-------------------------------------------------------------------
 Thu May 25 15:27:24 CEST 2006 - lslezak@suse.cz
 
 - fixed URL -> sourceID conversion
@@ -10,7 +18,7 @@ Thu May 25 07:26:22 CEST 2006 - lslezak@suse.cz
 
 - replace tabs by spaces in isolinux.cfg file in ncurses UI
   (workaround for #142509)
-- support patters (in addition to selections)
+- support patters (in addition to selections) (#175817)
 - zypp integartion (fixed source handling)
 - use Sequencer:: instead of deprecated wizard/sequencer.ycp
 - detect code10 product (different /boot dir layout)

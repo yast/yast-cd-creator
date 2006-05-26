@@ -485,7 +485,12 @@
             else if (ret == `select)
             {
                 integer SrcID = (integer)UI::QueryWidget(`id(`table), `CurrentItem);
-                selected_items = add (selected_items, SrcID );
+
+		if (!contains(selected_items, SrcID))
+		{
+		    selected_items = add (selected_items, SrcID );
+		}
+
                 UI::ChangeWidget(`id(`table), `Item(SrcID, 0) , _("X"));
             }
             else if (ret == `remove)
@@ -782,27 +787,37 @@ more <b>add-on</b> selections and packages.
 	    y2milestone("No selections, using patterns");
 	    using_patterns = true;
 
-	    // TODO: select already selected patterns!
+	    string base_pattern = CDCreator::Config["base"]:"";
+	    list<string> addons = CDCreator::Config["addons"]:[];
 
-	    list<string> available_patterns = Pkg::GetPatterns( `available, "" );
-	    y2milestone ("available_patterns %1", available_patterns);
+	    if (size(addons) > 0 || CDCreator::Config["base"]:"" != "")
+	    {
+		y2milestone("base pattern: %1, addons: %2", base_pattern, addons);
 
-	    // select default patterns
-	    foreach(string pat, available_patterns,
+		// select the base pattern
+		if (base_pattern != "")
 		{
-		    map pat_prop = Pkg::PatternData(pat);
-		    y2internal("pattern: %1: %2", pat, pat_prop);
-
-		    if (pat_prop["default"]:false == true || pat == "default")
-		    {
-			y2internal("Selecting pattern: %1", pat);
-			Pkg::ResolvableInstall(pat, `pattern);
-		    }
+		    Pkg::ResolvableInstall(base_pattern, `pattern);
 		}
-	    );
 
-	    // solve the dependencies of the default patterns
-	    Pkg::PkgSolve(true);
+		// select the addons
+		foreach(string addon, CDCreator::Config["addons"]:[],
+		{
+		    Pkg::ResolvableInstall(addon, `pattern);
+		});
+
+		Pkg::PkgSolve(true);
+
+		// add extra packages
+		list<string> packages = CDCreator::Config["packages"]:[];
+		if (size(packages) > 0)
+		{
+		    foreach(string p, packages,
+		    {
+			y2milestone("selecting package for installation: %1 -> %2", p, Pkg::PkgInstall(p));
+		    });
+		}
+	    }
 
 	    ret = patternSelection();
 	}
@@ -962,8 +977,12 @@ more <b>add-on</b> selections and packages.
 
 
         CDCreator::Config["packages"] = Pkg::FilterPackages(false, false, true, true);
+	y2milestone("User selected packages: %1", CDCreator::Config["packages"]:[]);
+
         CDCreator::Config["addons"] = seladd;
+	y2milestone("selected addons: %1", seladd);
         CDCreator::Config["base"] =   selbase[0]:"";
+	y2milestone("selected base: %1", selbase[0]:"");
 
 	// selections or patterns are used in the product
         CDCreator::Config["type"] = using_patterns ? `patterns : `selections;
@@ -1054,8 +1073,7 @@ press Next to continue.
             ret = UI::UserInput();
         }  until (ret == `next || ret == `back || ret == `abort);
         Wizard::CloseDialog();
-        // Reenable Sources
-        CDCreator::RestoreOriginalStatus();
+
         return (symbol)ret;
     }
 
