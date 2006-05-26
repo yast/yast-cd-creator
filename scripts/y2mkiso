@@ -26,6 +26,7 @@ XPARAMS=
 
 SOURCE=$1
 DEST=$2
+BOOT_ARCH=$3
 
 function usage()
 {
@@ -48,13 +49,13 @@ ROOT_ON_CD=suse
 DESCRDIR=suse/setup/descr
 BOOT_BASE_DIR=suse/images
 BOOT_IMAGE=$BOOT_BASE_DIR/boot
-BOOT_ISOLINUX=$BOOT_BASE_DIR/boot
+BOOT_ISOLINUX=$BOOT_BASE_DIR/boot/$BOOT_ARCH
 # set it later in pmac branch
 PPC_HFS_APPID=""
 if [ -f $SOURCE/content ] ; then
    BOOT_BASE_DIR=boot
    BOOT_IMAGE=$BOOT_BASE_DIR/image
-   BOOT_ISOLINUX=$BOOT_BASE_DIR/loader
+   BOOT_ISOLINUX=$BOOT_BASE_DIR/$BOOT_ARCH/loader
    while read KEY VALUE ; do
 	case $KEY in
 		DATADIR)
@@ -89,11 +90,11 @@ if [ -f $SOURCE/content ] ; then
       } < $i/media
    done
 else
-  if [ -d $SOURCE/boot/loader -a -d $SOURCE/i386/update ]; then
+  if [ -d $SOURCE/boot/$BOOT_ARCH/loader -a -d $SOURCE/i386/update ]; then
     # We have a bootable Patch-CD
     BOOT_BASE_DIR=boot
     BOOT_IMAGE=$BOOT_BASE_DIR/image
-    BOOT_ISOLINUX=$BOOT_BASE_DIR/loader
+    BOOT_ISOLINUX=$BOOT_BASE_DIR/$BOOT_ARCH/loader
   fi
 fi
 

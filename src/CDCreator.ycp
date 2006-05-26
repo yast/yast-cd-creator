@@ -231,7 +231,7 @@ global define boolean Write() ``{
 	SCR::Execute(.target.bash, "mkdir -p " + Rep);
     }
 
-    y2internal("Writing XML file %1: %2", ConfigFile, xml);
+    y2milestone("Writing XML file %1: %2", ConfigFile, xml);
     boolean ret = XML::YCPToXMLFile(`cdcreator, xml, ConfigFile);
 
     // translators: error message
@@ -431,7 +431,6 @@ global define boolean  CreateSkeleton () ``{
     }
     else if (Arch::ppc() || Arch::ppc64())
     {
-	// TODO: if (Config["code10"]:false)
 	commands= add(commands, sformat("/bin/mkdir -p %1/etc", skel_root));
 	commands= add(commands, sformat("/bin/mkdir -p %1/ppc", skel_root));
 	commands= add(commands, sformat("/bin/mkdir -p %1/suseboot", skel_root));
@@ -446,14 +445,14 @@ global define boolean  CreateSkeleton () ``{
 	if (source == "")
 	    return false;
 
-	y2internal("source: %1", source);
+	y2milestone("source: %1", source);
 	descr_dir = this_source["productData","descrdir"]:"suse/setup/descr";
 
 	y2debug("content: %1", meta_local);
 	if (this_source["productData","baseproductname"]:"" != "" &&
 	    issubstring(meta_local["FLAGS"]:"", "SP"))
 	{
-	    y2internal("Service pack detected");
+	    y2milestone("Service pack detected");
 	    y2debug("this source: %1", this_source );
 	    descrDir = this_source["productData","descrdir"]:"suse/setup/descr";
 	    dataDir  = this_source["productData", "datadir"]:"suse";
@@ -520,10 +519,10 @@ global define boolean  CreateSkeleton () ``{
 	else if  (this_source["productData","baseproductname"]:"" != "" )
 	{
 	    // SLES
-	    y2internal("SLES source detected");
+	    y2milestone("SLES source detected");
 
 	    sles_path = source;
-	    y2internal("this source: %1", this_source );
+	    y2milestone("this source: %1", this_source );
 	    descrDir = this_source["productData","descrdir"]:"suse/setup/descr";
 	    dataDir  = this_source["productData", "datadir"]:"suse";
 	    y2debug("source data: %1", this_source["sourceData", "url"]:"" );
@@ -563,7 +562,7 @@ global define boolean  CreateSkeleton () ``{
 		commands= add(commands, sformat("/bin/cp  %1/* %2", source, skel_root));
 	    }
 
-	    y2internal("source: %1, descrDir: %2, skel_root: %3", source, descrDir, skel_root);
+	    y2milestone("source: %1, descrDir: %2, skel_root: %3", source, descrDir, skel_root);
 	    // Descriptions, Selections and package databases
 	    commands= add(commands,
 			  sformat("/bin/cp -a %1/%2/* %3/%4",
@@ -588,7 +587,7 @@ global define boolean  CreateSkeleton () ``{
 
     if (!sp)
     {
-	y2internal("NOT SP");
+	y2milestone("NOT SP");
 
 	if (sles_path != "")
 	{
@@ -648,7 +647,7 @@ global define boolean  CreateSkeleton () ``{
 			  descrDir)
 		  );
 
-    y2internal("source: %1, descrDir: %2, skel_root: %3", source, descrDir, skel_root);
+    y2milestone("source: %1, descrDir: %2, skel_root: %3", source, descrDir, skel_root);
 
     // Prepare media files
     commands= add(commands, sformat("/bin/cp -a %1/media.1  %2", source, skel_root));
@@ -668,7 +667,7 @@ global define boolean  CreateSkeleton () ``{
 
     commands= add(commands, sformat("/bin/echo %1 >> %2/media.1/media ", count,  skel_root));
 
-    y2internal("all commands: %1", mergestring(commands, "\n"));
+    y2milestone("all commands: %1", mergestring(commands, "\n"));
 
     foreach (string c, commands, ``{
         y2milestone("command: %1", c);
@@ -725,7 +724,7 @@ global define boolean CopyMiscFiles() ``{
  * @return true on success
  */
 global define boolean EnableSource() ``{
-    y2internal("Config: %1", Config);
+    y2milestone("Config: %1", Config);
     enableSources();
 
     list<integer> sources = UrlToId(CDCreator::Config["sources"]:[]);
@@ -816,41 +815,17 @@ global define list checkProductDependency() ``{
 }
 
 
-
-global define void RestoreOriginalStatus()
-{
-    y2internal("RestoreOriginalStatus called");
-//    Pkg::SourceStartManager(true);
-
-    list<integer> current_enabled = Pkg::SourceGetCurrent(true);
-    foreach(integer id , current_enabled, ``{
-		y2milestone("Disabling source %1", id);
-                Pkg::SourceSetEnabled (id, false);
-	});
-/*    foreach(integer id , old_enabled, ``{
-                Pkg::SourceSetEnabled (id, true);
-		y2milestone("Enabling source %1", id);
-		Pkg::SourceFinish(id);
-	});
-*/
-}
-
 global define void enableSources()``{
 
     Pkg::SourceStartManager(false);
 
-    y2internal("sources: %1", CDCreator::Config["sources"]:[]);
-
+    y2milestone("sources: %1", CDCreator::Config["sources"]:[]);
     list<integer> sources = UrlToId(CDCreator::Config["sources"]:[]);
-    y2internal("source IDs: %1", sources);
+    y2milestone("source IDs: %1", sources);
 
     foreach(integer id , Pkg::SourceGetCurrent(true), ``{
 		y2milestone("Disabling source %1", id);
                 Pkg::SourceSetEnabled (id, false);
-//		if (!contains(sources, id))
-//		{
-//		    Pkg::SourceFinish(id);
-//		}
 	});
 
 
@@ -1078,7 +1053,6 @@ Check the created directory for possible hints."));
                 "/usr/bin/create_package_descr -x setup/descr/EXTRA_PROV",
                 basedir));
 
-    // RestoreOriginalStatus();
     return true;
 }
 

@@ -15,6 +15,7 @@
     import "Popup";
     import "Wizard_hw";
     import "Report";
+    import "Arch";
 
     import "CDCreator";
 
@@ -123,9 +124,9 @@
                     UI::ChangeWidget(`id(`create_button), `Enabled, false);
                 }
                 import "Progress";
-                Progress::off();
+                Progress::set(false);
                 CDCreator::Write();
-                Progress::on();
+                Progress::set(true);
          continue;
             }
             /* create */
@@ -254,7 +255,11 @@
                     string du = output["stdout"]:"";
                     y2milestone("Expected size: %1", du);
                     Popup::ShowFeedback(_("Creating CD Image..."), _("This may take a while"));
-                    SCR::Execute (.target.bash, "/usr/bin/y2mkiso $ISODIR $ISOFILE", $["ISOFILE": isofile, "ISODIR": isodir, "CD_PUBLISHER": pub, "CD_PREPARER": prep ]);
+
+		    string command = sformat("/usr/bin/y2mkiso %1 %2 %3", isodir, isofile, (CDCreator::Config["code10"]:false) ? Arch::architecture() : "");
+		    y2milestone("command: %1", command);
+
+                    SCR::Execute (.target.bash, command, $["CD_PUBLISHER": pub, "CD_PREPARER": prep ]);
                     Popup::ClearFeedback();
                 }
                 ret = `next;
