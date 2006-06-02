@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Fri Jun  2 12:32:53 CEST 2006 - lslezak@suse.cz
+
+- make digitally unsigned source on the medium (#179567)
+- remove unused patterns (the packages are missing)
+- copy slideshow
+- 2.13.2
+
+-------------------------------------------------------------------
 Fri May 26 14:35:46 CEST 2006 - lslezak@suse.cz
 
 - create bootable CD (code10 support)
