@@ -404,6 +404,8 @@ global define boolean  CreateSkeleton () ``{
     string descr_dir = "";
     string arch = Arch::architecture();
 
+    y2milestone("Config: %1", Config);
+
     // Create skeleton directory
     skel_root = sformat("%1/%2", Config["iso-directory"]:"", Config["name"]:"");
     SCR::Execute(.target.mkdir, skel_root);
@@ -599,6 +601,16 @@ global define boolean  CreateSkeleton () ``{
 	    descrDir = descr_dir;
 	}
 
+	if (dataDir == "")
+	{
+	    dataDir = String::FirstChunk(descr_dir, "/");
+
+	    if (dataDir == "")
+	    {
+		dataDir = "suse";
+	    }
+	}
+
 	if (savespace)
 	{
 	    // Installation, rescue images
@@ -647,6 +659,37 @@ global define boolean  CreateSkeleton () ``{
 			  descrDir)
 		  );
 
+    string slideDir = dataDir + "/setup/slide";
+    if (!savespace)
+    {
+	y2milestone("slideDir: %1", slideDir);
+
+	if (SCR::Read(.target.size, sformat("%1/%2", source, slideDir)) > 0)
+	{
+	    // copy slide show
+	    commands= add(commands, sformat("/bin/mkdir -p %1/%2", skel_root, slideDir));
+	    commands= add(commands,
+			  sformat("/bin/cp -a %1/%2 %3/%4",
+				  source,
+				  slideDir,
+				  skel_root,
+				  slideDir)
+			  );
+	}
+	else
+	{
+	    y2milestone("Slideshow is missing");
+	    commands= add(commands, sformat("/bin/mkdir -p %1/%2", skel_root, slideDir));
+	    commands= add(commands, sformat("> %1/%2/directory.yast", skel_root, slideDir));
+	}
+    }
+    else
+    {
+	y2milestone("Save space - do not copy slideshow");
+	commands= add(commands, sformat("/bin/mkdir -p %1/%2", skel_root, slideDir));
+	commands= add(commands, sformat("> %1/%2/directory.yast", skel_root, slideDir));
+    }
+
     y2milestone("source: %1, descrDir: %2, skel_root: %3", source, descrDir, skel_root);
 
     // Prepare media files
@@ -655,8 +698,6 @@ global define boolean  CreateSkeleton () ``{
 
 
     // copy autoyast profile
-
-
     if (Config["profile"]:""!="" && Config["copy_profile"]:false)
     {
         commands = add(commands, sformat("/bin/cp %1 %2/autoinst.xml", Config["profile"]:"",
@@ -678,6 +719,48 @@ global define boolean  CreateSkeleton () ``{
 
 	// recreate the index file
 	commands= add(commands, sformat("/bin/rm -f %1/directory.yast; cd %1; ls | grep -v -e '^\\.$' -e '^\\.\\.$' > %1/directory.yast", skel_root));
+
+	// remove unused patterns, p
+	if (Config["type"]:`unknown == `patterns)
+	{
+	    list<string> used_patterns = (list<string>)union(Config["base"]:[], Config["addons"]:[]);
+	    list<string> available_patterns = Pkg::GetPatterns(`available, "");
+	    list<string> unused_patterns = [];
+	    y2milestone("used_patterns: %1", used_patterns);
+	    y2milestone("available_patterns: %1", available_patterns);
+
+	    // get unused patterns
+	    foreach(string pat, available_patterns,
+		{
+		    if (!contains(used_patterns, pat))
+		    {
+			unused_patterns = add(unused_patterns, pat);
+		    }
+		}
+	    );
+
+	    y2milestone("Unused patterns: %1", unused_patterns);
+
+	    foreach(string unused_pat, unused_patterns,
+		{
+		    list<map> pat_infos = Pkg::ResolvableProperties(unused_pat, `pattern, "");
+
+		    foreach(map pat_info, pat_infos,
+			{
+			    // remove the pattern
+			    commands= add(commands, sformat("/bin/rm %1/%5/%2-%3.%4.pat", skel_root, unused_pat, pat_info["version"]:"", pat_info["arch"]:"", descrDir));
+			}
+		    );
+		}
+	    );
+
+	    if (size(unused_patterns) > 0)
+	    {
+		// regenerate directory.yast and patterns file
+		commands= add(commands, sformat("/bin/rm -f %1/%2/directory.yast; cd %1/%2; ls | grep -v -e '^\\.$' -e '^\\.\\.$' > %1/%2/directory.yast", skel_root, descrDir));
+		commands= add(commands, sformat("cd %1/%2; ls *.pat > %1/%2/patterns", skel_root, descrDir));
+	    }
+	}
     }
 
     y2milestone("all commands: %1", mergestring(commands, "\n"));
