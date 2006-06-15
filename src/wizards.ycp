@@ -61,7 +61,8 @@ define symbol AddSequence() ``{
 	],
 	"packagemanager": $[
 	   `abort	: `abort,
-	    `next	: "summary"
+	    `next	: "summary",
+	    `accept	: "summary"
 	],
 	"summary" : $[
 		      `abort	: `abort,
