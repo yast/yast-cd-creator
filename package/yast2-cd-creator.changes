@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Jun 15 09:42:29 CEST 2006 - jsuchome@suse.cz
+
+- fixed expected return value from package selector (#184760)
+- 2.13.3 
+
+-------------------------------------------------------------------
 Fri Jun  2 12:32:53 CEST 2006 - lslezak@suse.cz
 
 - make digitally unsigned source on the medium (#179567)
