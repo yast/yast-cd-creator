@@ -598,6 +598,27 @@
         return (symbol)ret;
     }
 
+    define void CheckCode10Source()
+    {
+	boolean code10 = false;
+	foreach (string url , CDCreator::Config["sources"]:[],
+	{
+            integer i = SourceManager::getSourceId(url);
+	    map sd = SourceManager::SourceData(i);
+	    map parsed = URL::Parse(sd["url"]:"");
+	    string source = parsed["path"]:"";
+
+	    y2debug("Source: %1, path: %2", url, source);
+
+	    code10 = code10 || SCR::Read(.target.size, source + "/boot/" + Arch::architecture()) >= 0;
+        });
+
+	y2milestone("CODE10 source: %1", code10);
+
+	// add code10 flag - /boot directory layout
+	CDCreator::Config["code10"] = code10;
+    }
+
     symbol autoyastPackages ()
     {
         string base_selection = "";
@@ -608,6 +629,10 @@
         string tmp = (string)SCR::Read( .target.tmpdir );
         SCR::Execute(.target.mkdir, tmp + "/tmproot");
         Pkg::TargetInit( tmp + "/tmproot" , true);
+
+	// add code10 flag if the new source type is detected
+	CheckCode10Source();
+
         boolean  success =  CDCreator::EnableSource();
 
         // Pkg::SourceStartManager(true);
@@ -618,21 +643,43 @@
                 return `overview;
             // set the new selection
             y2debug("Config: %1", CDCreator::Config );
-            boolean pkgret = Pkg::SetSelection( CDCreator::Config["base"]:"" );
-            Pkg::PkgSolve(true);
 
+	    if (CDCreator::Config["type"]:`unknown == `patterns)
+	    {
+		string base_pat = CDCreator::Config["base"]:"";
 
-            foreach(string addon, CDCreator::Config["addons"]:[], ``{
-                    Pkg::SetSelection( addon );
-                    });
+		if (size(base_pat) > 0)
+		{
+		    Pkg::ResolvableInstall(base_pat, `pattern);
+		    y2milestone("Selecting pattern: %1", base_pat);
+		}
+
+		if (size(CDCreator::Config["addons"]:[]) > 0)
+		{
+		    foreach(string addon, CDCreator::Config["addons"]:[], ``{
+			    Pkg::ResolvableInstall(addon, `pattern);
+			    y2milestone("Selecting pattern: %1", addon);
+		    });
+		}
+	    }
+	    else
+	    {
+		boolean pkgret = Pkg::SetSelection( CDCreator::Config["base"]:"" );
+
+		foreach(string addon, CDCreator::Config["addons"]:[], ``{
+			Pkg::SetSelection( addon );
+			});
+	    }
 
             if (size(CDCreator::Config["packages"]:[] ) > 0)
             {
                 foreach(string p, CDCreator::Config["packages"]:[], ``{
-                        y2debug("selecting package for installation: %1 -> %2", p, Pkg::PkgInstall(p));
+                        y2milestone("selecting package for installation: %1 -> %2", p, Pkg::PkgInstall(p));
                         });
             }
+
             Pkg::PkgSolve(true);
+
             list allpacs = Pkg::GetPackages(`selected, true);
             y2milestone("All packages: %1 ( %2 )", allpacs, size(allpacs));
         }
@@ -987,19 +1034,8 @@ more <b>add-on</b> selections and packages.
 	// selections or patterns are used in the product
         CDCreator::Config["type"] = using_patterns ? `patterns : `selections;
 
-	boolean code10 = false;
-	foreach (string url , CDCreator::Config["sources"]:[],
-	{
-            integer i = SourceManager::getSourceId(url);
-	    map sd = SourceManager::SourceData(i);
-	    map parsed = URL::Parse(sd["url"]:"");
-	    string source = parsed["path"]:"";
-
-	    code10 = code10 || SCR::Read(.target.size, source + "/boot/" + Arch::architecture()) >= 0;
-        });
-
-	// add code10 flag - /boot directory layout
-	CDCreator::Config["code10"] = code10;
+	// add code10 flag if the new source type is detected
+	CheckCode10Source();
 
         Wizard::CloseDialog();
         return (symbol)ret;
