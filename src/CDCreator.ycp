@@ -697,16 +697,78 @@ global define boolean  CreateSkeleton () ``{
     commands= add(commands, sformat("/usr/bin/head -n 2 %1/media.1/media  >   %2/media.1/media.tmp && mv %2/media.1/media.tmp %2/media.1/media",  skel_root, skel_root));
 
 
+    // create a copy of the autoyast profile (the new profile accepts even unsigned source)
+    string autoyast_copy = "";
+
+    if (Config["profile"]:""!="")
+    {
+	string prof = Config["profile"]:"";
+
+	if (!Profile::ReadXML(prof))
+	{
+	    Report::Error(_("Error reading control file."));
+	}
+	else
+	{
+	    y2internal("Current profile: %1", Profile::current);
+
+	    if ( Profile::current["general", "signature-handling" ]:nil == nil)
+	    {
+		Profile::current["general", "signature-handling" ] = $[];
+	    }
+
+	    Profile::current["general", "signature-handling", "accept_unsigned_file"] = true;
+
+	    // add prefix to the name
+	    list<string> parts = splitstring(prof, "/");
+	    parts[size(parts) - 1] = "install_"+ parts[size(parts) - 1]:"";
+	    prof = mergestring(parts, "/");
+
+	    boolean saved = Profile::Save(prof);
+	    y2milestone("Modified profile saved to %1: %2", prof, saved);
+
+	    if (saved)
+	    {
+		autoyast_copy = prof;
+	    }
+	    else
+	    {
+		// saving to the original location has failed, save copy to tmpdir
+		string tmpdir = (string)SCR::Read(.target.tmpdir);
+		prof = tmpdir + "/cd-creator-autoyast_profile.xml";
+
+		// save the copy
+		saved = Profile::Save(prof);
+
+		y2milestone("Copy of the profile saved to %1: %2", prof, saved);
+		if (saved)
+		{
+		    autoyast_copy = prof;
+		}
+	    }
+	}
+    }
+
     // copy autoyast profile
     if (Config["profile"]:""!="" && Config["copy_profile"]:false)
     {
-        commands = add(commands, sformat("/bin/cp %1 %2/autoinst.xml", Config["profile"]:"",
-                skel_root));
+	if (autoyast_copy != "")
+	{
+	    // save the original file and the copy
+	    commands = add(commands, sformat("/bin/cp %1 %2/autoinst.xml", autoyast_copy, skel_root));
+	    commands = add(commands, sformat("/bin/cp %1 %2/autoinst.orig.xml", Config["profile"]:"", skel_root));
+	}
+	else
+	{
+	    // save the original file (copy is not available)
+	    commands = add(commands, sformat("/bin/cp %1 %2/autoinst.xml", Config["profile"]:"", skel_root));
+	}
     }
+
     // Media nr.
     integer count = 1;
 
-    commands= add(commands, sformat("/bin/echo %1 >> %2/media.1/media ", count,  skel_root));
+    commands = add(commands, sformat("/bin/echo %1 >> %2/media.1/media ", count,  skel_root));
 
     // make the source digitally unsigned (because signed descr/packages file has been modified)
     if (Config["code10"]:false)
@@ -723,7 +785,13 @@ global define boolean  CreateSkeleton () ``{
 	// remove unused patterns, p
 	if (Config["type"]:`unknown == `patterns)
 	{
-	    list<string> used_patterns = (list<string>)union(Config["base"]:[], Config["addons"]:[]);
+	    list<string> used_patterns = Config["addons"]:[];
+
+	    if (Config["base"]:"" != "")
+	    {
+		used_patterns = prepend(used_patterns, Config["base"]:"");
+	    }
+
 	    list<string> available_patterns = Pkg::GetPatterns(`available, "");
 	    list<string> unused_patterns = [];
 	    y2milestone("used_patterns: %1", used_patterns);
@@ -901,9 +969,9 @@ global define list checkProductDependency() ``{
     });
 
 
-    map installedProduct = (map)select( (list)filter(map p, final, ``(size(p["dependents"]:[]) == 0
+    map installedProduct = (map)filter(map p, final, ``(size(p["dependents"]:[]) == 0
 								      && !p["is_service_pack"]:false
-								      && issubstring(p["vendor"]:"", "SuSE"))) , 0 , $[]);;
+								      && issubstring(p["vendor"]:"", "SuSE")))[0]:$[];
     Config["product"] = installedProduct["product"]:"";
     y2milestone("all: %1", final);
     return final;
