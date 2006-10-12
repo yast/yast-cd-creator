@@ -1,4 +1,20 @@
 -------------------------------------------------------------------
+Wed Aug 23 12:59:44 CEST 2006 - lslezak@suse.cz
+
+- add option 'accept_unsigned_file=true' to a copy of the original
+  autoyast profile, save the copy to the created medium. The copy
+  should be used for autoinstallation. (#199921)
+- 2.13.5
+
+-------------------------------------------------------------------
+Wed Aug  9 13:12:38 CEST 2006 - lslezak@suse.cz
+
+- fixed CD image building when using Autoyast profile as input -
+  properly read software selection from profile and detect
+  CODE10 source (#197549)
+- 2.13.4
+
+-------------------------------------------------------------------
 Thu Jun 15 09:42:29 CEST 2006 - jsuchome@suse.cz
 
 - fixed expected return value from package selector (#184760)
