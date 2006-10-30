@@ -182,7 +182,7 @@ define symbol CDCreatorSequence() ``{
 
     Wizard::CreateDialog();
     Wizard::SetDesktopIcon("cd-creator");
-    if (!Package::InstallAll(["autoyast2-utils", "mkisofs"]))
+    if (!Package::InstallAll(["inst-source-utils", "mkisofs"]))
     {
         Popup::Error(_("Installation of required packages
 failed."));
