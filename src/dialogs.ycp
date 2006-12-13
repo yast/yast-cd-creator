@@ -19,6 +19,7 @@
     import "StorageDevices";
     import "Arch";
     import "Label";
+    import "URL";
 
     include "cd-creator/helps.ycp";
 
@@ -486,12 +487,40 @@
             {
                 integer SrcID = (integer)UI::QueryWidget(`id(`table), `CurrentItem);
 
-		if (!contains(selected_items, SrcID))
-		{
-		    selected_items = add (selected_items, SrcID );
-		}
+		// Check architecture
+		map general = Pkg::SourceGeneralData(SrcID);
+		string source_path = URL::Parse(general["url"]:"")["path"]:"";
+		y2internal("source_path: %1", source_path);
 
-                UI::ChangeWidget(`id(`table), `Item(SrcID, 0) , _("X"));
+		map<string,string> read_content = (map<string,string>)SCR::Read(.content_file, source_path + "/content");
+		y2internal("Read content files: %1", read_content);
+
+		boolean found_architecture = false;
+		foreach(string key, string value, read_content,
+		    {
+			if (key == "ARCH." + Arch::architecture())
+			{
+			    found_architecture = true;
+			    break;
+			}
+		    }
+		);
+
+		y2milestone("Architecture %1 is supported: %2", Arch::architecture(), found_architecture);
+
+		if (found_architecture)
+		{
+		    if (!contains(selected_items, SrcID))
+		    {
+			selected_items = add (selected_items, SrcID );
+		    }
+
+		    UI::ChangeWidget(`id(`table), `Item(SrcID, 0) , _("X"));
+		}
+		else
+		{
+		    Report::Error(sformat(_("The source does not support architecture of this machine (%1).\nSelect another source."), Arch::architecture()));
+		}
             }
             else if (ret == `remove)
             {

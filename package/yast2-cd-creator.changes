@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Dec 13 07:43:06 CET 2006 - lslezak@suse.cz
+
+- display an error message when the selected source doesn't
+  support architecture of the machine (#197549)
+- 2.15.0
+
+-------------------------------------------------------------------
 Mon Oct 30 13:54:39 CET 2006 - lslezak@suse.cz
 
 - 'create_package_descr' script has been moved to
