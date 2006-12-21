@@ -35,6 +35,7 @@ define symbol AddSequence() ``{
 	"config2"	: ``( Configure2Dialog() ),
 	"isolinux"	: ``( isolinuxDialog() ),
 	"packagemanager": ``( packageSelector() ),
+	"gpgkey"	: ``( gpgKeyDialog() ),
 	"write"		: ``( WriteDialog() ),
 	"summary"	: ``( ConfigSummary() )
     ];
@@ -61,8 +62,12 @@ define symbol AddSequence() ``{
 	],
 	"packagemanager": $[
 	   `abort	: `abort,
+	    `next	: "gpgkey",
+	    `accept	: "gpgkey"
+	],
+	"gpgkey"	: $[
+	   `abort	: `abort,
 	    `next	: "summary",
-	    `accept	: "summary"
 	],
 	"summary" : $[
 		      `abort	: `abort,

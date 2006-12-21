@@ -27,6 +27,7 @@ import "AutoinstSoftware";
 import "Arch";
 import "PackageAI";
 import "String";
+import "GPG";
 
 
 global define void enableSources();
@@ -388,6 +389,40 @@ global define void configSetup()
     return;
 }
 
+boolean SignSource(string keyid, string dir)
+{
+    // sign the content file
+    boolean ret = GPG::SignDetached(keyid, dir + "/content");
+
+    // export the public key
+    ret = ret && GPG::ExportAsciiPublicKey(keyid, dir + "/content.key");
+
+    // sign the product file
+    ret = ret && GPG::SignDetached(keyid, dir + "/media.1/products");
+
+    // export the public key
+    ret = ret && GPG::ExportAsciiPublicKey(keyid, dir + "/media.1/products.key");
+
+    // export the public key
+    ret = ret && GPG::ExportAsciiPublicKey(keyid, dir + sformat("/gpg-pubkey-%1.asc", keyid));
+
+    y2milestone("Signed source: %1", ret);
+
+    return ret;
+}
+
+boolean UpdateContentFile(string dir)
+{
+    // generate new sha1 sums for files in descr subdirectory
+    // remove './' from the file names, ignore directory.yast file, sort the output
+    string command = sformat("(cd '%1/suse/setup/descr'; find . -type f -exec sha1sum \\{\\} \\; | sed -e 's#^\\(.\\{40\\}\\)  ./#\\1  #' | grep -v '^.\\{40\\}  directory.yast$' | LC_ALL=C sort -k 2)", String::Quote(dir));
+
+    y2milestone("Generating SHA1 sums: %1", command);
+
+    // TODO: execute the command
+
+    return false;
+}
 
 /**
  * Create Skeleton
@@ -837,6 +872,15 @@ global define boolean  CreateSkeleton () ``{
         y2milestone("executing: %1", c);
 	ret = (integer)SCR::Execute (.target.bash, c);
     });
+
+    // sign the files
+    string gpg_key = Config["gpg_key"]:"";
+    if (gpg_key != "")
+    {
+	UpdateContentFile(skel_root);
+	SignSource(gpg_key, skel_root);
+    }
+
 
     return success;
 }

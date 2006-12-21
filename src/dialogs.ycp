@@ -19,7 +19,12 @@
     import "StorageDevices";
     import "Arch";
     import "Label";
+    import "Popup";
     import "URL";
+    import "GPG";
+    import "GPGWidgets";
+    import "CWM";
+    import "String";
 
     include "cd-creator/helps.ycp";
 
@@ -1070,6 +1075,107 @@ more <b>add-on</b> selections and packages.
         return (symbol)ret;
     }
 
+    term GpgDialogContent()
+    {
+	return `MarginBox(2, 1,
+	    `VBox (
+		`Left("sign_checkbox"),
+		`VSpacing(0.5),
+		"select_private_key",
+		`VSpacing(1),
+		"create_new_key"
+	    )
+	);
+    };
+
+    void refreshSigningDialog(boolean sign)
+    {
+	UI::ChangeWidget(`id("create_new_key"), `Enabled, sign);
+	UI::ChangeWidget(`id(`gpg_priv_table), `Enabled, sign);
+	UI::ChangeWidget(`id(`gpg_priv_label), `Enabled, sign);
+    }
+
+    symbol SignContent(string key, map event)
+    {
+	y2internal("SignContent: %1, %2", key, event);
+
+	if (key == "sign_checkbox")
+	{
+	    // refresh table and pushbutton state
+	    boolean sign = (boolean)UI::QueryWidget(`id("sign_checkbox"), `Value);
+	    refreshSigningDialog(sign);
+	}
+
+	return nil;
+    }
+
+    void signCheckboxInit(string key)
+    {
+	if (key == "sign_checkbox")
+	{
+	    boolean sign = false;
+
+	    if (CDCreator::Config["gpg_key"]:"" != "")
+	    {
+		sign = true;
+	    }
+
+	    UI::ChangeWidget(`id("sign_checkbox"), `Value, sign);
+	    refreshSigningDialog(sign);
+	}
+    }
+
+    map sign_checkbox_widget()
+    {
+	return $[
+	"sign_checkbox" :
+	    $[
+		"widget" : `checkbox,
+		"opt"	 : [ `notify ],
+		"init"	 : signCheckboxInit,
+		"label"  : _("&Digitally Sign the Product on the Medium"),
+		"handle_events" : ["sign_checkbox"],
+		"handle" : SignContent,
+		// TODO: validate the dialog (is a key selected if the checkbox is selected?
+		// "validate_help" : _("Select a gpg key in the table. Create...")
+		"help" : _("<p><big><b>Sign</b></big><br>
+adsfsdfsddsfsdfdsf</p>")
+	    ]
+	];
+    }
+
+
+    symbol gpgKeyDialog()
+    {
+	string caption = _("Signing the Product on the Medium");
+
+	if (CDCreator::Config["gpg_key"]:"" != "")
+	{
+	    // preselect the key
+	    GPGWidgets::SetSelectedPrivateKey(CDCreator::Config["gpg_key"]:"");
+	}
+
+	symbol ret = CWM::ShowAndRun ($[
+	    "widget_names" : ["sign_checkbox", "select_private_key", "create_new_key"],
+	    "widget_descr" : union(GPGWidgets::Widgets(), sign_checkbox_widget()),
+	    "contents" :  GpgDialogContent(),
+	    "caption" : caption,
+	    "back_button" : Label::BackButton (),
+	    "next_button" : Label::NextButton (),
+	    "fallback_functions" : $[]
+	]);
+
+	boolean sign = (boolean)UI::QueryWidget(`id("sign_checkbox"), `Value);
+	y2milestone("Sign the medium: %1", sign);
+
+	string gpg_key = (sign) ? GPGWidgets::SelectedPrivateKey() : "";
+	y2internal("GPG signing key: %1", gpg_key);
+
+	// remember the key
+	CDCreator::Config["gpg_key"] = gpg_key;
+
+	return ret;
+    }
 
     /**
      * Configuration Summary
@@ -1110,15 +1216,47 @@ more <b>add-on</b> selections and packages.
         summary = Summary::CloseList(summary);
         summary = Summary::AddHeader(summary, _("Packages") );
 
-        summary = Summary::AddLine(summary, sformat("%1",
+        summary = Summary::AddLine(summary, sformat(_("Selected %1 packages"),
                     size(Pkg::GetPackages(`selected, true))));
 
         summary = Summary::AddHeader(summary,_("Output Directory"));
 
-        summary = Summary::AddLine(summary,sformat(_("Creating directory tree in:<br><b> %1/%2 </b>"),
+        summary = Summary::AddLine(summary,sformat(_("Creating directory tree in <b> %1/%2 </b>"),
                     CDCreator::Config["iso-directory"]:"",
                     CDCreator::Config["name"]:"") );
 
+
+	// header in the summary dialog
+	summary = Summary::AddHeader(summary, _("Signing"));
+	string gpgkey = CDCreator::Config["gpg_key"]:"";
+
+	if (gpgkey != "")
+	{
+	    list<map> privatekeys = GPG::PrivateKeys();
+	    string uid = "";
+
+	    foreach(map key, privatekeys,
+		{
+		    if (key["id"]:"" == gpgkey)
+		    {
+			uid = mergestring(key["uid"]:[], ", ");
+		    }
+		}
+	    );
+
+	    if (uid != "")
+	    {
+		uid = sformat(" (%1)", uid);
+	    }
+
+	    // summary text - %1 is GPG key ID (e.g. ABCDEF01), %2 is GPG key user ID (or empty if not defined)
+	    summary = Summary::AddLine(summary, sformat(_("Digitally sign the medium with GPG key <b>%1</b>%2"), gpgkey, String::EscapeTags(uid)));
+	}
+	else
+	{
+	    // summary text
+	    summary = Summary::AddLine(summary, _("The medium will not be digitally signed"));
+	}
 
         term contents =
             `RichText(summary);
