@@ -20,6 +20,7 @@ import "Report";
 import "Summary";
 import "XML";
 import "URL";
+import "Profile";
 import "Misc";
 import "Directory";
 import "Profile";
@@ -28,6 +29,7 @@ import "Arch";
 import "PackageAI";
 import "String";
 import "GPG";
+import "GPGWidgets";
 
 
 global define void enableSources();
@@ -293,7 +295,7 @@ global define list Overview() ``{
             string isofile = cfg["iso-directory"]:"" + "/" +  cfg["isofile"]:"";
             if (SCR::Read(.target.size, isofile) < 0 )
                 isofile = _("No Files");
-	return(`item(`id(name), name, cfg["product"]:"", isofile));
+	return(`item(`id(name), name, cfg["product"]:"", isofile, cfg["gpg_key"]:""));
     });
     return overview;
 }
@@ -389,39 +391,128 @@ global define void configSetup()
     return;
 }
 
-boolean SignSource(string keyid, string dir)
+boolean ExportPublicKey(string keyid, string dir)
 {
-    // sign the content file
-    boolean ret = GPG::SignDetached(keyid, dir + "/content");
-
     // export the public key
-    ret = ret && GPG::ExportAsciiPublicKey(keyid, dir + "/content.key");
-
-    // sign the product file
-    ret = ret && GPG::SignDetached(keyid, dir + "/media.1/products");
+    boolean ret = GPG::ExportAsciiPublicKey(keyid, dir + "/content.key");
 
     // export the public key
     ret = ret && GPG::ExportAsciiPublicKey(keyid, dir + "/media.1/products.key");
 
     // export the public key
-    ret = ret && GPG::ExportAsciiPublicKey(keyid, dir + sformat("/gpg-pubkey-%1.asc", keyid));
+    ret = ret && GPG::ExportAsciiPublicKey(keyid, dir + sformat("/gpg-pubkey-%1.asc", tolower(keyid)));
+
+    y2milestone("exported public key %1: %2", keyid, ret);
+    return ret;
+}
+
+boolean SignSourceFiles(string keyid, string dir, string passphrase)
+{
+    // sign the content file
+    boolean ret = GPG::SignDetached(keyid, dir + "/content", passphrase);
+
+    // sign the product file
+    ret = ret && GPG::SignDetached(keyid, dir + "/media.1/products", passphrase);
 
     y2milestone("Signed source: %1", ret);
+    return ret;
+}
+
+string SHA1Meta(string dir, string product_dir)
+{
+    // generate new sha1 sums for files in descr subdirectory
+    // remove './' from the file names, ignore directory.yast file, sort the output
+    string command = sformat("(cd '%1/%2' && find . -type f -exec sha1sum \\{\\} \\; | sed -e 's#^\\(.\\{40\\}\\)  ./#META SHA1 \\1  #' | grep -v '^.\\{40\\}  directory.yast$' | LC_ALL=C sort -k 2)", String::Quote(dir), String::Quote(product_dir));
+
+    y2milestone("Generating SHA1 sums: %1", command);
+
+    // execute the command
+    map ret = (map)SCR::Execute(.target.bash_output, command);
+    y2milestone("Result: %1", ret);
+    string meta_sha1 = ret["stdout"]:"";
+
+    return meta_sha1;
+}
+
+string SHA1Key(string dir)
+{
+    // generate new sha1 sums for files in descr subdirectory
+    // remove './' from the file names, ignore directory.yast file, sort the output
+    string command = sformat("(cd '%1' && find . -type f -name 'gpg-pubkey-*.asc' -exec sha1sum \\{\\} \\; | sed -e 's#^\\(.\\{40\\}\\)  ./#KEY SHA1 \\1  #' | LC_ALL=C sort -k 2)", String::Quote(dir));
+
+    y2milestone("Generating SHA1 key sums: %1", command);
+
+    // execute the command
+    map ret = (map)SCR::Execute(.target.bash_output, command);
+    y2milestone("Result: %1", ret);
+    string key_sha1 = ret["stdout"]:"";
+
+    return key_sha1;
+}
+
+global boolean UpdateContentFile(string dir, string prod_dir)
+{
+    boolean ret = true;
+
+    string meta_sha1 = SHA1Meta(dir, prod_dir);
+    string key_sha1 = SHA1Key(dir);
+
+    string command = sformat("/usr/bin/grep -v -e '^KEY ' -e '^META ' %1/content", dir);
+    map out = (map)SCR::Execute(.target.bash_output, command);
+    if (out["exit"]:-1 != 0)
+    {
+	return false;
+    }
+
+    string read_content = out["stdout"]:"";
+    y2internal("content file: %1", read_content);
+
+    // add trailing new line char if it's missing
+    if (size(read_content) > 0 && substring(read_content, size(read_content) - 1, 1) != "\n")
+    {
+	read_content = read_content + "\n";
+    }
+
+    // add trailing new line char if it's missing
+    if (size(meta_sha1) > 0 && substring(meta_sha1, size(meta_sha1) - 1, 1) != "\n")
+    {
+	meta_sha1 = meta_sha1 + "\n";
+    }
+
+    // concatenate the meta and the key sums
+    read_content = read_content + meta_sha1 + key_sha1;
+
+    // write the file
+    ret = SCR::Write(.target.string, dir + "/content", read_content);
+    y2milestone("Updated content file %1: %2", dir + "/content", ret);
 
     return ret;
 }
 
-boolean UpdateContentFile(string dir)
+global boolean UpdateMD5File(string directory)
 {
-    // generate new sha1 sums for files in descr subdirectory
-    // remove './' from the file names, ignore directory.yast file, sort the output
-    string command = sformat("(cd '%1/suse/setup/descr'; find . -type f -exec sha1sum \\{\\} \\; | sed -e 's#^\\(.\\{40\\}\\)  ./#\\1  #' | grep -v '^.\\{40\\}  directory.yast$' | LC_ALL=C sort -k 2)", String::Quote(dir));
+    boolean ret = true;
+    string md5file = directory + "/MD5SUMS";
+    string command = "";
 
-    y2milestone("Generating SHA1 sums: %1", command);
+    if (SCR::Read(.target.size, md5file) >= 0)
+    {
+	command = "rm -f " + md5file;
+	y2milestone("removing old MD5SUMS file: %1", md5file);
+	ret = SCR::Execute(.target.bash, command) == 0;
 
-    // TODO: execute the command
+	if (!ret)
+	{
+	    y2error("Cannot remove the old MD5SUMS file");
+	    return false;
+	}
+    }
 
-    return false;
+    command = sformat("cd %1 && md5sum * > MD5SUMS", directory);
+    ret = SCR::Execute(.target.bash, command) == 0;
+
+    y2milestone("MD5SUMS updated: %1", ret);
+    return ret;
 }
 
 /**
@@ -596,7 +687,8 @@ global define boolean  CreateSkeleton () ``{
 		    commands= add(commands, sformat("/bin/cp  %1/boot/root %2/boot", source, skel_root));
 		}
 
-		commands= add(commands, sformat("/bin/cp  %1/* %2", source, skel_root));
+		// copy base files, skipped directories are reported as an error -> force success
+		commands= add(commands, sformat("/bin/cp %1/* %2; exit 0", source, skel_root));
 	    }
 
 	    y2milestone("source: %1, descrDir: %2, skel_root: %3", source, descrDir, skel_root);
@@ -617,7 +709,8 @@ global define boolean  CreateSkeleton () ``{
 	}
 	else
 	{
-	    commands= add(commands, sformat("/bin/cp  %1/* %2", source, skel_root));
+	    // copy base files, skipped directories are reported as an error -> force success
+	    commands= add(commands, sformat("/bin/cp %1/* %2; exit 0", source, skel_root));
 	}
     });
     
@@ -870,18 +963,147 @@ global define boolean  CreateSkeleton () ``{
 
     foreach (string c, commands, ``{
         y2milestone("executing: %1", c);
-	ret = (integer)SCR::Execute (.target.bash, c);
+	success = success && ((integer)SCR::Execute (.target.bash, c) == 0);
+	y2milestone("success: %1", success);
     });
+
+    // update MD5SUMS file
+    success = success && UpdateMD5File(sformat("%1/%2", skel_root, descrDir));
+
+    return success;
+}
+
+// see http://en.opensuse.org/Secure_Installation_Sources
+boolean InsertKeyToInitrd(string gpg_key, string initrd_file)
+{
+    y2internal("Adding GPG key %1 to initrd %2", gpg_key, initrd_file);
+    // initrd is cpio.gz archive
+
+    list<string> parts = splitstring(initrd_file, "/");
+    if (size(parts) > 1)
+    {
+	// remove the last element
+	parts = remove(parts, size(parts) - 1);
+    }
+    string base = mergestring(parts, "/");
+
+    boolean ret = GPG::ExportPublicKey(gpg_key, sformat("%1/gpg-%2.gpg", base, gpg_key));
+    if (!ret) return false;
+
+    // uncompress the archive and add the GPG key
+    string command = sformat("cd '%1' && gunzip < '%2' > '%2.cpio' && echo 'gpg-%3.gpg' | cpio -o -H newc -A -F '%2.cpio'", String::Quote(base), String::Quote(initrd_file), gpg_key);
+    y2milestone("command: %1", command);
+
+    map out = (map)SCR::Execute(.target.bash_output, command);
+    y2milestone("output: %1", out);
+    ret = out["exit"]:-1 == 0;
+    if (!ret) return false;
+
+    // compress the archive, remove the temporary files
+    command = sformat("gzip --best < '%1.cpio' > '%1' && rm -f '%1.cpio' '%2/gpg-%3.gpg'", String::Quote(initrd_file), String::Quote(base), gpg_key);
+    y2milestone("command: %1", command);
+
+    out = (map)SCR::Execute(.target.bash_output, command);
+    y2milestone("output: %1", out);
+    ret = out["exit"]:-1 == 0;
+
+    return ret;
+}
+
+global boolean InsertKeyToInitrds(string gpg_key, string base_dir)
+{
+    // get initrd list
+    string command = "";
+    map out = $[];
+    string find_output = "";
+
+    if (SCR::Read(.target.size, base_dir + "/boot") >= 0)
+    {
+	y2milestone("Searching for 'initrd' in %1/boot...", base_dir);
+	command = sformat("cd '%1' && find boot -type f -name 'initrd'", String::Quote(base_dir));
+	out = (map)SCR::Execute(.target.bash_output, command);
+	find_output = out["stdout"]:"";
+    }
+
+    if (SCR::Read(.target.size, base_dir + "/suseboot") >= 0)
+    {
+	y2milestone("Searching for 'initrd*' in %1/suseboot...", base_dir);
+	command = sformat("cd '%1' && find suseboot -type f -name 'initrd*'", String::Quote(base_dir));
+	out = (map)SCR::Execute(.target.bash_output, command);
+	find_output = find_output + out["stdout"]:"";
+    }
+
+    list<string> initrds = splitstring(find_output, "\n");
+    // remove empty strings
+    initrds = filter(string initrd, initrds, {return initrd != "";});
+    y2milestone("Found initrds: %1", initrds);
+
+    boolean ret = true;
+    foreach(string initrd, initrds,
+	{
+	    boolean inserted = InsertKeyToInitrd(gpg_key, base_dir + "/" + initrd);
+
+	    if (!inserted)
+	    {
+		Report::Error(sformat(_("Could not add GPG key %1 to initrd\n%2"), gpg_key, initrd));
+		ret = false;
+	    }
+	}
+    );
+
+    return ret;
+}
+
+global boolean SignSourceStep()
+{
+    boolean success = true;
 
     // sign the files
     string gpg_key = Config["gpg_key"]:"";
     if (gpg_key != "")
     {
-	UpdateContentFile(skel_root);
-	SignSource(gpg_key, skel_root);
+	boolean signed = false;
+
+	while (!signed)
+	{
+	    string passphrase = GPGWidgets::AskPassphrasePopup(gpg_key);
+
+	    if (passphrase == nil)
+	    {
+		// aborted
+		break;
+	    }
+
+	    // export the key
+	    success = success && ExportPublicKey(gpg_key, skel_root);
+	    // update SHA1 sums
+	    success = success && UpdateContentFile(skel_root, "suse/setup/descr");
+	    // sign the source
+	    signed = SignSourceFiles(gpg_key, skel_root, passphrase);
+
+	    // yes/no popup: error message
+	    if (!signed && !Popup::YesNo(_("Error: Could not digitally sign the source.\nTry it again?")))
+	    {
+		break;
+	    }
+
+	    if (signed)
+	    {
+		// update directory.yast file
+		string command = sformat("/bin/rm -f '%1/directory.yast'; cd '%1'; ls | grep -v -e '^\\.$' -e '^\\.\\.$' > '%1/directory.yast'", String::Quote(skel_root));
+		y2milestone("Updating %1/directory.yast ...", skel_root);
+		integer updated = (integer)SCR::Execute(.target.bash, command);
+		y2milestone("Updated: %1", updated == 0);
+		success = success && updated == 0;
+	    }
+	}
+
+	success = success && signed;
+
+	success = success && InsertKeyToInitrds(gpg_key, skel_root);
     }
 
-
+    y2milestone("Source signed: %1", success);
     return success;
 }
 
@@ -1168,7 +1390,10 @@ global define boolean verifyDestination() ``{
     if ((integer)SCR::Read(.target.size, Config["iso-directory"]:"" + "/"  + Config["name"]:"") > 0 ) { // its a file!
         if (Popup::YesNo(sformat(_("Destination directory exists or is a file.
 Remove directory %1?") , isodir)))
+	{
+	    y2milestone("Removing directory %1", isodir);
             SCR::Execute(.target.bash, "rm -rf " + isodir );
+	}
         else
             return false;
     }

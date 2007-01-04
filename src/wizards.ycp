@@ -165,7 +165,7 @@ define symbol MainSequence() ``{
  * Whole configuration of cd-creator
  * @return sequence result
  */
-define symbol CDCreatorSequence() ``{
+define boolean CDCreatorSequence() ``{
 
     map aliases = $[
 	"main"	:   ``( MainSequence() ),
@@ -191,13 +191,13 @@ define symbol CDCreatorSequence() ``{
     {
         Popup::Error(_("Installation of required packages
 failed."));
-        return `abort;
+        return false;
     }
 
     symbol ret = Sequencer::Run(aliases, sequence);
 
     UI::CloseDialog();
-    return ret;
+    return ret == `next;
 }
 
 
