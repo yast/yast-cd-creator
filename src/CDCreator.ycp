@@ -409,10 +409,10 @@ boolean ExportPublicKey(string keyid, string dir)
 boolean SignSourceFiles(string keyid, string dir, string passphrase)
 {
     // sign the content file
-    boolean ret = GPG::SignDetached(keyid, dir + "/content", passphrase);
+    boolean ret = GPG::SignAsciiDetached(keyid, dir + "/content", passphrase);
 
     // sign the product file
-    ret = ret && GPG::SignDetached(keyid, dir + "/media.1/products", passphrase);
+    ret = ret && GPG::SignAsciiDetached(keyid, dir + "/media.1/products", passphrase);
 
     y2milestone("Signed source: %1", ret);
     return ret;
@@ -465,7 +465,7 @@ global boolean UpdateContentFile(string dir, string prod_dir)
     }
 
     string read_content = out["stdout"]:"";
-    y2internal("content file: %1", read_content);
+    y2debug("content file: %1", read_content);
 
     // add trailing new line char if it's missing
     if (size(read_content) > 0 && substring(read_content, size(read_content) - 1, 1) != "\n")
@@ -481,6 +481,7 @@ global boolean UpdateContentFile(string dir, string prod_dir)
 
     // concatenate the meta and the key sums
     read_content = read_content + meta_sha1 + key_sha1;
+    y2debug("new content file: %1", read_content);
 
     // write the file
     ret = SCR::Write(.target.string, dir + "/content", read_content);
@@ -828,7 +829,8 @@ global define boolean  CreateSkeleton () ``{
     // create a copy of the autoyast profile (the new profile accepts even unsigned source)
     string autoyast_copy = "";
 
-    if (Config["profile"]:""!="")
+    // the copy is not needed if the sourse will be signed with a gpg key
+    if (Config["profile"]:""!="" && Config["gpg_key"]:"" != "")
     {
 	string prof = Config["profile"]:"";
 
@@ -838,7 +840,7 @@ global define boolean  CreateSkeleton () ``{
 	}
 	else
 	{
-	    y2internal("Current profile: %1", Profile::current);
+	    y2milestone("Current profile: %1", Profile::current);
 
 	    if ( Profile::current["general", "signature-handling" ]:nil == nil)
 	    {
@@ -888,7 +890,7 @@ global define boolean  CreateSkeleton () ``{
 	}
 	else
 	{
-	    // save the original file (copy is not available)
+	    // save the original file (a copy is not available)
 	    commands = add(commands, sformat("/bin/cp %1 %2/autoinst.xml", Config["profile"]:"", skel_root));
 	}
     }
@@ -976,7 +978,7 @@ global define boolean  CreateSkeleton () ``{
 // see http://en.opensuse.org/Secure_Installation_Sources
 boolean InsertKeyToInitrd(string gpg_key, string initrd_file)
 {
-    y2internal("Adding GPG key %1 to initrd %2", gpg_key, initrd_file);
+    y2milestone("Adding GPG key %1 to initrd %2", gpg_key, initrd_file);
     // initrd is cpio.gz archive
 
     list<string> parts = splitstring(initrd_file, "/");

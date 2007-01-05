@@ -1,12 +1,14 @@
 -------------------------------------------------------------------
-Thu Jan  4 16:06:06 CET 2007 - lslezak@suse.cz
+Fri Jan  5 13:29:20 CET 2007 - lslezak@suse.cz
 
+- added the signing step in the progress dialog
 - sign the source - ask for the passphrase, export the public key,
   update descr/directory.yast, descr/MD5SUMS and content file,
-  include the key in initrd files
+  include the key in initrd files, do not modify the autoyast
+  profile when the source is signed (feature #301153)
 - display the selected GPG key in the overview dialog
-- added the signing step in the progress dialog
 - minimal command line mode support
+- 2.15.1
 
 -------------------------------------------------------------------
 Wed Dec 13 07:43:06 CET 2006 - lslezak@suse.cz

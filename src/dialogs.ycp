@@ -495,10 +495,10 @@
 		// Check architecture
 		map general = Pkg::SourceGeneralData(SrcID);
 		string source_path = URL::Parse(general["url"]:"")["path"]:"";
-		y2internal("source_path: %1", source_path);
+		y2milestone("source_path: %1", source_path);
 
 		map<string,string> read_content = (map<string,string>)SCR::Read(.content_file, source_path + "/content");
-		y2internal("Read content files: %1", read_content);
+		y2milestone("Read content files: %1", read_content);
 
 		boolean found_architecture = false;
 		foreach(string key, string value, read_content,
@@ -1097,7 +1097,7 @@ more <b>add-on</b> selections and packages.
 
     symbol SignContent(string key, map event)
     {
-	y2internal("SignContent: %1, %2", key, event);
+	y2debug("SignContent: %1, %2", key, event);
 
 	if (key == "sign_checkbox")
 	{
@@ -1169,7 +1169,7 @@ adsfsdfsddsfsdfdsf</p>")
 	y2milestone("Sign the medium: %1", sign);
 
 	string gpg_key = (sign) ? GPGWidgets::SelectedPrivateKey() : "";
-	y2internal("GPG signing key: %1", gpg_key);
+	y2milestone("GPG signing key: %1", gpg_key);
 
 	// remember the key
 	CDCreator::Config["gpg_key"] = gpg_key;
