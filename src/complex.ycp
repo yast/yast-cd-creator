@@ -188,8 +188,10 @@
 	string gpg_key = CDCreator::Config["gpg_key"]:"";
 	if (gpg_key != "")
 	{
+	    // label
 	    progress_stages = add(progress_stages, _("Sign the Source With a GPG Key"));
-	    progress_descriptions = add(progress_descriptions, _("Signing the Source With a GPG Key"));
+	    // progressbar label
+	    progress_descriptions = add(progress_descriptions, _("Signing the Source With a GPG Key..."));
 	}
 
         Progress::New(
