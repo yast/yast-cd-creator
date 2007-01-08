@@ -19,11 +19,13 @@ textdomain "cd-creator";
 
 include "cd-creator/wizards.ycp";
 
+import "CommandLine";
+
 map cmdline_description = $[
     "id"	: "cd-creator",
     // transltors: command line help text for the Xcd-creator module
     "help"	: _("Configuration of CD creator"),
-    "guihandler"        : ``(CDCreatorSequence()),
+    "guihandler"        : CDCreatorSequence,
     "initialize"        : ``(CDCreator::Read()),
     "finish"            : ``(CDCreator::Write()),
     "actions"           : $[
@@ -39,11 +41,8 @@ y2milestone ("----------------------------------------");
 y2milestone ("CDCreator module started");
 
 
-/* main ui function */
-//boolean ret = false;
-//ret = CommandLineRun(cmdline_description);
-
-symbol ret = CDCreatorSequence();
+/* start the module */
+any ret = CommandLine::Run(cmdline_description);
 y2debug("ret=%1", ret);
 
 /* Finish */

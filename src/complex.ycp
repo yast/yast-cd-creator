@@ -68,7 +68,7 @@
 
         term contents = Wizard_hw::ConfiguredContent(
                 /* Table header */
-                `header(_("Name"), _("Product"), _("Image")),
+                `header(_("Name"), _("Product"), _("Image"), _("GPG Key")),
                 overview, nil, nil, nil, nil );
 
         term contents2 = `VBox(
@@ -185,6 +185,14 @@
         _("Copying selected packages")
             ];
 
+	string gpg_key = CDCreator::Config["gpg_key"]:"";
+	if (gpg_key != "")
+	{
+	    // label
+	    progress_stages = add(progress_stages, _("Sign the Source With a GPG Key"));
+	    // progressbar label
+	    progress_descriptions = add(progress_descriptions, _("Signing the Source With a GPG Key..."));
+	}
 
         Progress::New(
                 _("Creating ISO image directory..."),
@@ -228,6 +236,15 @@
         {
             return `overview;
         }
+
+	if (gpg_key != "")
+	{
+	    Progress::NextStage();
+	    if (!CDCreator::SignSourceStep())
+	    {
+		return `overview;
+	    }
+	}
 
         integer i = 0;
 
