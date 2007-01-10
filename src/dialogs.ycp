@@ -444,7 +444,7 @@
         string caption = _("Source Selection");
 
         SourceManager::ReadSources();
-        list sources = fillSourceTable([], true , "dir");
+        list sources = fillSourceTable([], true , "");
         y2debug("sources: %1", sources);
 
         term table =
@@ -493,12 +493,11 @@
                 integer SrcID = (integer)UI::QueryWidget(`id(`table), `CurrentItem);
 
 		// Check architecture
-		map general = Pkg::SourceGeneralData(SrcID);
-		string source_path = URL::Parse(general["url"]:"")["path"]:"";
-		y2milestone("source_path: %1", source_path);
+		string local_file = Pkg::SourceProvideFile(SrcID, 1, "content");
+		y2internal("content file: %1", local_file);
 
-		map<string,string> read_content = (map<string,string>)SCR::Read(.content_file, source_path + "/content");
-		y2milestone("Read content files: %1", read_content);
+		map<string,string> read_content = (map<string,string>)SCR::Read(.content_file, local_file);
+		y2milestone("content file: %1", read_content);
 
 		boolean found_architecture = false;
 		foreach(string key, string value, read_content,
@@ -638,16 +637,25 @@
 	foreach (string url , CDCreator::Config["sources"]:[],
 	{
             integer i = SourceManager::getSourceId(url);
-	    map sd = SourceManager::SourceData(i);
-	    map parsed = URL::Parse(sd["url"]:"");
-	    string source = parsed["path"]:"";
 
-	    y2debug("Source: %1, path: %2", url, source);
+	    y2milestone("Downloading %1/boot/directory.yast...", url);
+	    string local_directory_yast = Pkg::SourceProvideOptionalFile(i, 1, "/boot/directory.yast");
 
-	    code10 = code10 || SCR::Read(.target.size, source + "/boot/" + Arch::architecture()) >= 0;
+	    if (local_directory_yast != nil && local_directory_yast != "")
+	    {
+		// read directory.yast file
+		string dir_listing = (string)SCR::Read(.target.string, local_directory_yast);
+
+		if (dir_listing != nil && dir_listing != "")
+		{
+		    list<string> items = splitstring(dir_listing, "\n");
+
+		    code10 = code10 || contains(items, Arch::architecture() + "/");
+		}
+	    }
         });
 
-	y2milestone("CODE10 source: %1", code10);
+	y2internal("CODE10 source: %1", code10);
 
 	// add code10 flag - /boot directory layout
 	CDCreator::Config["code10"] = code10;
