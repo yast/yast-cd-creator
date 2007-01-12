@@ -63,7 +63,8 @@ define symbol AddSequence() ``{
 	"packagemanager": $[
 	   `abort	: `abort,
 	    `next	: "gpgkey",
-	    `accept	: "gpgkey"
+	    `accept	: "gpgkey",
+	    `failed	: "summary"
 	],
 	"gpgkey"	: $[
 	   `abort	: `abort,

@@ -494,7 +494,7 @@
 
 		// Check architecture
 		string local_file = Pkg::SourceProvideFile(SrcID, 1, "content");
-		y2internal("content file: %1", local_file);
+		y2debug("local content file: %1", local_file);
 
 		map<string,string> read_content = (map<string,string>)SCR::Read(.content_file, local_file);
 		y2milestone("content file: %1", read_content);
@@ -655,7 +655,7 @@
 	    }
         });
 
-	y2internal("CODE10 source: %1", code10);
+	y2milestone("CODE10 source: %1", code10);
 
 	// add code10 flag - /boot directory layout
 	CDCreator::Config["code10"] = code10;
@@ -997,6 +997,7 @@ more <b>add-on</b> selections and packages.
 		{
 		    // set the new selection
 		    boolean pkgret = Pkg::SetSelection( base_selection );
+		    y2milestone("base selection: %1", pkgret);
 		    if (size(CDCreator::Config["packages"]:[] ) > 0)
 		    {
 			foreach(string p, CDCreator::Config["packages"]:[], ``{
@@ -1038,8 +1039,19 @@ more <b>add-on</b> selections and packages.
 	    }  until ( ret == `next  || ret == `back);
 	}
 
+        y2milestone("Selected packages: %1 ", size(Pkg::GetPackages(`selected, true)));
+
 	// activate the selections
-        Pkg::PkgSolve(true);
+        boolean solved = Pkg::PkgSolve(true);
+
+	if (!solved)
+	{
+	    string details = (string)SCR::Read(.target.string, "/var/log/YaST2/badlist");
+	    // error message, %1 = details
+	    Report::LongError(sformat(_("The dependecies cannot be resolved.\n\n%1"), details));
+	    return `failed;
+	}
+
         list allpacs = Pkg::GetPackages(`selected, true);
         y2milestone("All packages: %1 ( %2 )", allpacs, size(allpacs));
 
