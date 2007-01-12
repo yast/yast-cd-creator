@@ -21,6 +21,9 @@ include "cd-creator/wizards.ycp";
 
 import "CommandLine";
 
+import "PackageCallbacksInit";
+PackageCallbacksInit::InitPackageCallbacks();
+
 map cmdline_description = $[
     "id"	: "cd-creator",
     // transltors: command line help text for the Xcd-creator module

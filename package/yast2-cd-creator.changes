@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Fri Jan 12 09:38:14 CET 2007 - lslezak@suse.cz
+
+- support for all installation sources (added support for remote
+  sources and CD/DVD sources), sort the packages by source and
+  medium number, execute the copy commands immediately
+  (the downloaded files are removed when the source is changed)
+  (feature #301124)
+- fix for older (SLES9) sources
+- register package manager callbacks
+- 2.13.8
+
+-------------------------------------------------------------------
 Fri Jan  5 13:29:20 CET 2007 - lslezak@suse.cz
 
 - added the signing step in the progress dialog

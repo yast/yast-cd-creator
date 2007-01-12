@@ -50,12 +50,18 @@ DESCRDIR=suse/setup/descr
 BOOT_BASE_DIR=suse/images
 BOOT_IMAGE=$BOOT_BASE_DIR/boot
 BOOT_ISOLINUX=$BOOT_BASE_DIR/boot/$BOOT_ARCH
+if [ -z "$BOOT_ARCH" ]; then
+    BOOT_ISOLINUX=$BOOT_BASE_DIR/loader
+fi
 # set it later in pmac branch
 PPC_HFS_APPID=""
 if [ -f $SOURCE/content ] ; then
    BOOT_BASE_DIR=boot
    BOOT_IMAGE=$BOOT_BASE_DIR/image
    BOOT_ISOLINUX=$BOOT_BASE_DIR/$BOOT_ARCH/loader
+   if [ -z "$BOOT_ARCH" ]; then
+	BOOT_ISOLINUX=$BOOT_BASE_DIR/loader
+   fi
    while read KEY VALUE ; do
 	case $KEY in
 		DATADIR)
