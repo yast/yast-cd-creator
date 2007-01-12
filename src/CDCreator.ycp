@@ -45,7 +45,9 @@ global map meta_local = $[];
 
 global list<string> missing_packages = [];
 
-global list<map> toCopy = [];
+// packages to copy
+// $[ source_id : $[ media_id : list<packages> ] ]
+map<integer, map<integer, list<map> > > toCopy = $[];
 
 /* Local variables */
 
@@ -91,6 +93,24 @@ global define boolean Modified() ``{
 };
 
 include "cd-creator/routines.ycp";
+
+global integer PackageCount()
+{
+    integer ret = 0;
+
+    foreach(integer source, map<integer, list<map> > srcmapping, toCopy,
+	{
+	    foreach(integer medium, list<map> packages, srcmapping,
+		{
+		    ret = ret + size(packages);
+		}
+	    );
+	}
+    );
+
+    return ret;
+}
+
 
 global define list<integer> UrlToId(list<string> urls)
 {
@@ -348,21 +368,35 @@ global define string Readisolinux() ``{
     }
     else
     {
-        bootconfig_path = sformat("boot/%1/loader/isolinux.cfg", Arch::architecture());
+	bootconfig_path = sformat("boot/%1/loader/isolinux.cfg", Arch::architecture());
+
 	list<integer> srcids = UrlToId([Config["sources", 0]:""]);
-	integer srcid = srcids[0]:-1;
 
-	y2internal("Downloading %1 from source %2", bootconfig_path, srcid);
-	bootconfig_path = Pkg::SourceProvideOptionalFile(srcids[0]:0, 1, bootconfig_path);
-	y2internal("bootconfig_path: %1", bootconfig_path);
+	foreach(integer srcid, srcids,
+	    {
+		y2milestone("Downloading %1 from source %2", bootconfig_path, srcid);
+		bootconfig_path = Pkg::SourceProvideOptionalFile(srcids[0]:0, 1, bootconfig_path);
+		y2debug("bootconfig_path: %1", bootconfig_path);
 
-	if (SCR::Read(.target.size, bootconfig_path) < 0)
-	{
-	    // try the old path as a fallback
-	    bootconfig_path = "boot/loader/isolinux.cfg";
-	    bootconfig_path = Pkg::SourceProvideOptionalFile(srcids[0]:0, 1, bootconfig_path);
-	    y2internal("bootconfig_path: %1", bootconfig_path);
-	}
+		if (bootconfig_path == nil)
+		{
+		    // try the old path as a fallback
+		    bootconfig_path = "boot/loader/isolinux.cfg";
+		    bootconfig_path = Pkg::SourceProvideOptionalFile(srcids[0]:0, 1, bootconfig_path);
+		    y2debug("bootconfig_path: %1", bootconfig_path);
+
+		    if (bootconfig_path != nil)
+		    {
+			break;
+		    }
+		}
+		else
+		{
+		    y2milestone("Found bootconfig in source %1", srcid);
+		    break;
+		}
+	    }
+	);
     }
     if (SCR::Read(.target.size, bootconfig_path) >= 0)
           bootconfig = (string)SCR::Read(.target.string, bootconfig_path );
@@ -528,45 +562,59 @@ global boolean UpdateMD5File(string directory)
     return ret;
 }
 
-list<string> CopyFile(list<string> commands, integer srcid, integer mid, string src, string target)
+// execute a command
+boolean Exec(string command)
 {
-    string local_file = Pkg::SourceProvideFile(srcid, mid, src);
-    y2internal("local_file: %1", local_file);
+    y2milestone("executing: %1", command);
+    integer ret = (integer)SCR::Execute (.target.bash, command);
+    y2milestone("result: %1", ret);
 
-    return add(commands, sformat("/bin/cp -a -f -- '%1' '%2'", String::Quote(local_file), String::Quote(target)));
+    return ret == 0;
 }
 
-list<string> CopyOptionalFile(list<string> commands, integer srcid, integer mid, string src, string target)
+boolean CopyFile(integer srcid, integer mid, string src, string target)
+{
+    string local_file = Pkg::SourceProvideFile(srcid, mid, src);
+    y2debug("local_file: %1", local_file);
+
+    return Exec(sformat("/bin/cp -a -f -- '%1' '%2'", String::Quote(local_file), String::Quote(target)));
+}
+
+boolean CopyOptionalFile(integer srcid, integer mid, string src, string target)
 {
     string local_file = Pkg::SourceProvideOptionalFile(srcid, mid, src);
-    y2internal("local_file: %1", local_file);
+    y2debug("local_file: %1", local_file);
 
     if (local_file != nil && local_file != "")
     {
-	commands = add(commands, sformat("/bin/cp -a -f -- '%1' '%2'", String::Quote(local_file), String::Quote(target)));
+	return Exec(sformat("/bin/cp -a -f -- '%1' '%2'", String::Quote(local_file), String::Quote(target)));
+    }
+    else
+    {
+	y2warning("Optional file [%1:%2]%3 is missing", srcid, mid, src);
     }
 
-    return commands;
+    return true;
 }
 
-list<string> CopyDirectoryRec(list<string> commands, integer srcid, integer mid, string src, string target)
+boolean CopyDirectoryRec(integer srcid, integer mid, string src, string target)
 {
-    y2internal("CopyDirectoryRec: srcid: %1, mid: %2, src: %3, target: %4", srcid, mid, src, target);
+    y2milestone("CopyDirectoryRec: srcid: %1, mid: %2, src: %3, target: %4", srcid, mid, src, target);
 
     string local_dir = Pkg::SourceProvideDir(srcid, mid, src);
-    y2internal("local_dir: %1", local_dir);
+    y2milestone("local_dir: %1", local_dir);
 
     if (local_dir == nil || local_dir == "")
     {
 	// an error message, %1 is the directory, %2 is URL of the source
 	Report::Error(sformat(_("Cannot read directory %1\nfrom source %2."), src, Pkg::SourceGeneralData(srcid)["url"]:""));
-	return commands;
+	return false;
     }
 
-    return add(commands, sformat("/bin/cp -a -f -- '%1' '%2'", String::Quote(local_dir), String::Quote(target)));
+    return Exec(sformat("/bin/cp -a -f -- '%1' '%2'", String::Quote(local_dir), String::Quote(target)));
 }
 
-list<string> CopyDirectoryNonRec(list<string> commands, integer srcid, integer mid, string src, string target)
+boolean CopyDirectoryNonRec(integer srcid, integer mid, string src, string target)
 {
     // get file list from directory.yast
     string file_list = Pkg::SourceProvideOptionalFile(srcid, 1, "directory.yast");
@@ -574,32 +622,31 @@ list<string> CopyDirectoryNonRec(list<string> commands, integer srcid, integer m
     if (file_list == nil || file_list == "")
     {
 	y2error("directory.yast was not found, a YUM source?");
-	return commands;
+	return false;
     }
 
     string f = (string)SCR::Read(.target.string, file_list);
     list<string> files = splitstring(f, "\n");
-    y2internal("Remote objects: %1", files);
+    y2milestone("Remote objects: %1", files);
 
     files = filter(string file, files, {return !regexpmatch(file, "/$") && file != "";});
-    y2internal("Remote files: %1", files);
+    y2milestone("Remote files: %1", files);
 
     foreach(string remote_file, files,
 	{
-	    commands = CopyFile(commands, srcid, mid, sformat("%1/%2", src, remote_file), sformat("%1/%2", target, remote_file));
+	    // copy the file as optional, the directory.yast file can be broken
+	    CopyOptionalFile(srcid, mid, sformat("%1/%2", src, remote_file), sformat("%1/%2", target, remote_file));
 	}
     );
 
-    return commands;
+    return true;
 }
 
-list<string> CopyPPCBoot(list<string> commands, integer srcid, string target)
+boolean CopyPPCBoot(integer srcid, string target)
 {
-    commands = CopyDirectoryRec(commands, srcid, 1, "/ppc", target);
-    commands = CopyDirectoryRec(commands, srcid, 1, "/etc", target);
-    commands = CopyDirectoryRec(commands, srcid, 1, "/suseboot", target);
-
-    return commands;
+    return CopyDirectoryRec(srcid, 1, "/ppc", target)
+        && CopyDirectoryRec(srcid, 1, "/etc", target)
+	&& CopyDirectoryRec(srcid, 1, "/suseboot", target);
 }
 
 string UpDir(string input)
@@ -617,13 +664,41 @@ string UpDir(string input)
     return mergestring(parts, "/");
 }
 
+
+boolean CopyFilesRegExp(integer srcid, integer mid, string src, string target, string regexp)
+{
+    // get file list from directory.yast
+    string file_list = Pkg::SourceProvideOptionalFile(srcid, 1, "directory.yast");
+
+    if (file_list == nil || file_list == "")
+    {
+	y2error("directory.yast was not found, a YUM source?");
+	return false;
+    }
+
+    string f = (string)SCR::Read(.target.string, file_list);
+    list<string> files = splitstring(f, "\n");
+    y2milestone("Remote objects: %1", files);
+
+    files = filter(string file, files, {return !regexpmatch(file, "/$") && regexpmatch(file, regexp) && file != "";});
+    y2milestone("Remote files: %1", files);
+
+
+    foreach(string remote_file, files,
+	{
+	    CopyOptionalFile(srcid, mid, sformat("%1/%2", src, remote_file), sformat("%1/%2", target, remote_file));
+	}
+    );
+
+    return true;
+}
+
 /**
  * Create Skeleton
  * @return boolean true on success
  */
 global define boolean  CreateSkeleton () ``{
 
-    list<string> commands = [];
     integer ret = 0;
     boolean success = true;
     boolean savespace = Config["savespace"]:false;
@@ -639,7 +714,7 @@ global define boolean  CreateSkeleton () ``{
     skel_root = sformat("%1/%2", Config["iso-directory"]:"", Config["name"]:"");
     SCR::Execute(.target.mkdir, skel_root);
 
-    commands= add(commands, sformat("/bin/mkdir -p %1/boot/%2", skel_root, arch));
+    Exec(sformat("/bin/mkdir -p %1/boot/%2", skel_root, arch));
 
     list<integer> enabled = Pkg::SourceGetCurrent(true);
     if (size(enabled) == 0 )
@@ -653,18 +728,18 @@ global define boolean  CreateSkeleton () ``{
     {
 	if (Config["code10"]:false)
 	{
-	    commands= add(commands, sformat("/bin/mkdir -p %1/boot/%2/loader", skel_root, arch));
+	    Exec(sformat("/bin/mkdir -p %1/boot/%2/loader", skel_root, arch));
 	}
 	else
 	{
-	    commands= add(commands, sformat("/bin/mkdir -p %1/boot/loader", skel_root));
+	    Exec(sformat("/bin/mkdir -p %1/boot/loader", skel_root));
 	}
     }
     else if (Arch::ppc() || Arch::ppc64())
     {
-	commands= add(commands, sformat("/bin/mkdir -p %1/etc", skel_root));
-	commands= add(commands, sformat("/bin/mkdir -p %1/ppc", skel_root));
-	commands= add(commands, sformat("/bin/mkdir -p %1/suseboot", skel_root));
+	Exec(sformat("/bin/mkdir -p %1/etc", skel_root));
+	Exec(sformat("/bin/mkdir -p %1/ppc", skel_root));
+	Exec(sformat("/bin/mkdir -p %1/suseboot", skel_root));
     }
 
     foreach(integer id, enabled, ``{
@@ -693,56 +768,58 @@ global define boolean  CreateSkeleton () ``{
 		// Installation, rescue images
 		if (Config["code10"]:false)
 		{
-		    commands = CopyFile(commands, id, 1, sformat("boot/%1/rescue", arch),
+		    CopyFile(id, 1, sformat("boot/%1/rescue", arch),
 			sformat("%1/boot/%2", skel_root, arch));
 		}
 		else
 		{
 		    // use the old directory
-		    commands = CopyFile(commands, id, 1, "boot/rescue", sformat("%1/boot", skel_root));
+		    CopyFile(id, 1, "boot/rescue", sformat("%1/boot", skel_root));
 		}
 		// Loader, x86 specific
 		if (Arch::i386() || Arch::x86_64())
 		{
 		    if (Config["code10"]:false)
 		    {
-			// TODO
-			commands= add(commands, sformat("/bin/cp  %1/boot/%3/loader/* %2/boot/%3/loader", source, skel_root, arch));
-			// TODO
-			commands= add(commands, sformat("/bin/cp  %1/boot/%3/* %2/boot/%3", source, skel_root, arch));
+			// recursive copy of /boot/$arch/loader/*
+			CopyDirectoryRec(id, 1, sformat("boot/%1/loader", arch), sformat("%1/boot/%2", skel_root, arch));
+
+			// nonrecursive copy of /boot/$arch/*
+			CopyDirectoryNonRec(id, 1, sformat("boot/%1", arch), sformat("%1/boot", skel_root));
 		    }
 		    else
 		    {
-			// TODO
-			commands= add(commands, sformat("/bin/cp  %1/boot/loader/* %2/boot/loader", source, skel_root));
+			// recursive copy of /boot/loader/*
+			CopyDirectoryRec(id, 1, "boot/loader", sformat("%1/boot", skel_root));
 		    }
 		}
 		else if (Arch::ppc() || Arch::ppc64())
 		{
-		    commands = CopyFile(commands, id, 1, "boot", skel_root);
-		    commands = CopyPPCBoot(commands, id, skel_root);
+		    // recursive copy of /boot
+		    CopyDirectoryRec(id, 1, "boot", skel_root);
+		    CopyPPCBoot(id, skel_root);
 		} else
 		{
-		    commands = CopyFile(commands, id, 1, "boot", skel_root);
+		    CopyDirectoryRec(id, 1, "boot", skel_root);
 		}
 	    }
 	    else
 	    {
-		commands = CopyFile(commands, id, 1, "boot", skel_root);
+		CopyDirectoryRec(id, 1, "boot", skel_root);
 
 		if (Arch::ppc() || Arch::ppc64())
 		{
-		    commands = CopyPPCBoot(commands, id, skel_root);
+		    CopyPPCBoot(id, skel_root);
 		}
 	    }
 
 	    // copy the driver update
-	    commands = CopyOptionalFile(commands, id, 1, "driverupdate", skel_root);
+	    CopyOptionalFile(id, 1, "driverupdate", skel_root);
 
 
 	    // copy the descr directory
-	    commands = add(commands, sformat("/bin/mkdir -p %1/%2", skel_root, descrDir));
-	    commands = CopyDirectoryRec(commands, id, 1, descrDir, sformat("%1/%2", skel_root, UpDir(descrDir)));
+	    Exec(sformat("/bin/mkdir -p %1/%2", skel_root, descrDir));
+	    CopyDirectoryRec(id, 1, descrDir, sformat("%1/%2", skel_root, UpDir(descrDir)));
 
 	    sp = true;
 	}
@@ -761,55 +838,56 @@ global define boolean  CreateSkeleton () ``{
 	    if (!success)
 		return false;
 	 
-	    commands= add(commands, sformat("/bin/mkdir -p %1/%2",  skel_root, descrDir));	    
+	    Exec(sformat("/bin/mkdir -p %1/%2",  skel_root, descrDir));	    
 
 	    if (savespace)
 	    {
 		// Installation, rescue images
 		if (Config["code10"]:false)
 		{
-		    commands = CopyFile(commands, id, 1, sformat("boot/%1/rescue", arch), sformat("%1/boot/%2", skel_root, arch));
-		    commands = CopyFile(commands, id, 1, sformat("boot/%1/root", arch), sformat("%1/boot/%2", skel_root, arch));
-		    commands = CopyFile(commands, id, 1, sformat("boot/%1/root.fonts", arch), sformat("%1/boot/%2", skel_root, arch));
+		    CopyFile(id, 1, sformat("boot/%1/rescue", arch), sformat("%1/boot/%2", skel_root, arch));
+		    CopyFile(id, 1, sformat("boot/%1/root", arch), sformat("%1/boot/%2", skel_root, arch));
+		    CopyOptionalFile(id, 1, sformat("boot/%1/root.fonts", arch), sformat("%1/boot/%2", skel_root, arch));
 		}
 		else
 		{
-		    commands = CopyFile(commands, id, 1, "boot/rescue", sformat("%1/boot", skel_root));
-		    commands = CopyFile(commands, id, 1, "boot/root", sformat("%1/boot", skel_root));
+		    CopyFile(id, 1, "boot/rescue", sformat("%1/boot", skel_root));
+		    CopyFile(id, 1, "boot/root", sformat("%1/boot", skel_root));
 		}
 
-			// TODO
-		commands= add(commands, sformat("/bin/cp  %1/content* %2", source, skel_root));
+		// copy content* files
+		CopyFilesRegExp(id, 1, "/", skel_root, "^content");
 
-		commands = CopyFile(commands, id, 1, "control.xml", skel_root);
+		CopyFile(id, 1, "control.xml", skel_root);
 	    }
 	    else
 	    {
 		if (Config["code10"]:false)
 		{
-		    commands = CopyFile(commands, id, 1, sformat("boot/%1/root", arch), sformat("%1/boot/%2", skel_root, arch));
+		    CopyFile(id, 1, sformat("boot/%1/root", arch), sformat("%1/boot/%2", skel_root, arch));
+		    CopyOptionalFile(id, 1, sformat("boot/%1/root.fonts", arch), sformat("%1/boot/%2", skel_root, arch));
 		}
 		else
 		{
-		    commands = CopyFile(commands, id, 1, "boot/root", sformat("%1/boot", skel_root));
+		    CopyFile(id, 1, "boot/root", sformat("%1/boot", skel_root));
 		}
 
 		// copy base files, skip all directories
-		commands = CopyDirectoryNonRec(commands, id, 1, "/", skel_root);
+		CopyDirectoryNonRec(id, 1, "/", skel_root);
 	    }
 
 	    y2milestone("source: %1, descrDir: %2, skel_root: %3", source, descrDir, skel_root);
 	    // Descriptions, Selections and package databases
-	    commands = CopyDirectoryRec(commands, id, 1, descrDir, sformat("%1/%2", skel_root, UpDir(descrDir)));
+	    CopyDirectoryRec(id, 1, descrDir, sformat("%1/%2", skel_root, UpDir(descrDir)));
 
 	    // Prepare media files
-	    commands = CopyDirectoryRec(commands, id, 1, "media.1", skel_root);
-	    commands = add(commands, sformat("/usr/bin/head -n 2 %1/media.1/media  >   %2/media.1/media.tmp && mv %2/media.1/media.tmp %2/media.1/media",  skel_root, skel_root));
+	    CopyDirectoryRec(id, 1, "media.1", skel_root);
+	    Exec(sformat("/usr/bin/head -n 2 %1/media.1/media  >   %2/media.1/media.tmp && mv %2/media.1/media.tmp %2/media.1/media",  skel_root, skel_root));
 	}
 	else
 	{
 	    // copy base files, skip all directories
-	    commands = CopyDirectoryNonRec(commands, id, 1, "/", skel_root);
+	    CopyDirectoryNonRec(id, 1, "/", skel_root);
 	}
     });
 
@@ -846,14 +924,14 @@ global define boolean  CreateSkeleton () ``{
 	    // Installation, rescue images
 	    if (Config["code10"]:false)
 	    {
-		commands = CopyFile(commands, source_id, 1, sformat("boot/%1/rescue", arch), sformat("%1/boot/%2", skel_root, arch));
-		commands = CopyFile(commands, source_id, 1, sformat("boot/%1/root", arch), sformat("%1/boot/%2", skel_root, arch));
-		commands = CopyFile(commands, source_id, 1, sformat("boot/%1/root.fonts", arch), sformat("%1/boot/%2", skel_root, arch));
+		CopyFile(source_id, 1, sformat("boot/%1/rescue", arch), sformat("%1/boot/%2", skel_root, arch));
+		CopyFile(source_id, 1, sformat("boot/%1/root", arch), sformat("%1/boot/%2", skel_root, arch));
+		CopyFile(source_id, 1, sformat("boot/%1/root.fonts", arch), sformat("%1/boot/%2", skel_root, arch));
 	    }
 	    else
 	    {
-		commands = CopyFile(commands, source_id, 1, "boot/rescue", sformat("%1/boot", skel_root));
-		commands = CopyFile(commands, source_id, 1, "boot/root", sformat("%1/boot", skel_root));
+		CopyFile(source_id, 1, "boot/rescue", sformat("%1/boot", skel_root));
+		CopyFile(source_id, 1, "boot/root", sformat("%1/boot", skel_root));
 	    }
 
 	    // Loader, x86 specific
@@ -861,32 +939,34 @@ global define boolean  CreateSkeleton () ``{
 	    {
 		if (Config["code10"]:false)
 		{
-			// TODO
-		    commands= add(commands, sformat("/bin/cp  %1/boot/%3/loader/* %2/boot/%3/loader", source, skel_root, arch));
-			// TODO directory.yast
-		    commands= add(commands, sformat("/bin/cp  %1/boot/* %2/boot/", source, skel_root));
+		    // recursive copy of /boot/$arch/loader/*
+		    CopyDirectoryRec(source_id, 1, sformat("boot/%1/loader", arch), sformat("%1/boot/%2", skel_root, arch));
+
+		    // nonrecursive copy of /boot/$arch/*
+		    CopyDirectoryNonRec(source_id, 1, sformat("boot/%1", arch), sformat("%1/boot", skel_root));
 		}
 		else
 		{
-			// TODO
-		    commands= add(commands, sformat("/bin/cp  %1/boot/loader/* %2/boot/loader", source, skel_root));
+		    // recursive copy of /boot/loader/*
+		    CopyDirectoryRec(source_id, 1, "boot/loader", sformat("%1/boot", skel_root));
 		}
-	    } else
+	    }
+	    else
 	    {
-			// TODO
-		commands= add(commands, sformat("/bin/cp  %1/boot/* %2/boot/", source, skel_root));
+		// recursive copy of /boot/loader/*
+		CopyDirectoryRec(source_id, 1, "boot", skel_root);
 	    }
 	}
 	else
 	{
-	    commands = CopyDirectoryRec(commands, source_id, 1, "/boot", skel_root);
+	    CopyDirectoryRec(source_id, 1, "/boot", skel_root);
 	}
     }
 
     // copy descriptions
     string descrdir = meta[source_id, "productData","descrdir"]:"suse/setup/descr";
-    commands = add(commands, sformat("/bin/mkdir -p %1/%2", skel_root, descrdir));
-    commands = CopyDirectoryRec(commands, source_id, 1, descrdir, sformat("%1/%2", skel_root, UpDir(descrdir)));
+    Exec(sformat("/bin/mkdir -p %1/%2", skel_root, descrdir));
+    CopyDirectoryRec(source_id, 1, descrdir, sformat("%1/%2", skel_root, UpDir(descrdir)));
 
     string datadir  = meta[source_id, "productData", "datadir"]:"suse";
     string slidedir = datadir + "/setup/slide";
@@ -894,34 +974,40 @@ global define boolean  CreateSkeleton () ``{
     if (!savespace)
     {
 	y2milestone("slidedir: %1", slidedir);
-	string l_slidedir = Pkg::SourceProvideDir(source_id, 1, slidedir);
 
-	if (l_slidedir != nil && l_slidedir != "")
+	// check whether the slideshow directory is present
+	string l_dirlist = Pkg::SourceProvideOptionalFile(source_id, 1, slidedir + "directory.yast");
+	if (l_dirlist != nil)
 	{
-	    // copy slide show
-	    commands= add(commands, sformat("/bin/mkdir -p %1/%2", skel_root, slidedir));
-	    commands= add(commands, sformat("/bin/cp -a %1/* %2/%3", l_slidedir, skel_root, slidedir));
+	    string l_slidedir = Pkg::SourceProvideDir(source_id, 1, slidedir);
+
+	    if (l_slidedir != nil && l_slidedir != "")
+	    {
+		// copy slide show
+		Exec(sformat("/bin/mkdir -p %1/%2", skel_root, slidedir));
+		Exec(sformat("/bin/cp -a %1/* %2/%3", l_slidedir, skel_root, slidedir));
+	    }
 	}
 	else
 	{
 	    y2milestone("Slideshow is missing");
-	    commands= add(commands, sformat("/bin/mkdir -p %1/%2", skel_root, slidedir));
-	    commands= add(commands, sformat("> %1/%2/directory.yast", skel_root, slidedir));
+	    Exec(sformat("/bin/mkdir -p %1/%2", skel_root, slidedir));
+	    Exec(sformat("> %1/%2/directory.yast", skel_root, slidedir));
 	}
     }
     else
     {
 	y2milestone("Save space - do not copy the slideshow");
-	commands= add(commands, sformat("/bin/mkdir -p %1/%2", skel_root, slidedir));
-	commands= add(commands, sformat("> %1/%2/directory.yast", skel_root, slidedir));
+	Exec(sformat("/bin/mkdir -p %1/%2", skel_root, slidedir));
+	Exec(sformat("> %1/%2/directory.yast", skel_root, slidedir));
     }
 
     y2milestone("source: %1, descrDir: %2, skel_root: %3", source, descrDir, skel_root);
 
 
     // copy media.1 directory
-    commands = CopyDirectoryRec(commands, source_id, 1, "media.1", skel_root);
-    commands = add(commands, sformat("/usr/bin/head -n 2 %1/media.1/media  >   %2/media.1/media.tmp && mv %2/media.1/media.tmp %2/media.1/media",  skel_root, skel_root));
+    CopyDirectoryRec(source_id, 1, "media.1", skel_root);
+    Exec(sformat("/usr/bin/head -n 2 %1/media.1/media  >   %2/media.1/media.tmp && mv %2/media.1/media.tmp %2/media.1/media",  skel_root, skel_root));
 
     // create a copy of the autoyast profile (the new profile accepts even unsigned source)
     string autoyast_copy = "";
@@ -982,42 +1068,33 @@ global define boolean  CreateSkeleton () ``{
 	if (autoyast_copy != "")
 	{
 	    // save the original file and the copy
-	    commands = add(commands, sformat("/bin/cp %1 %2/autoinst.xml", autoyast_copy, skel_root));
-	    commands = add(commands, sformat("/bin/cp %1 %2/autoinst.orig.xml", Config["profile"]:"", skel_root));
+	    Exec(sformat("/bin/cp %1 %2/autoinst.xml", autoyast_copy, skel_root));
+	    Exec(sformat("/bin/cp %1 %2/autoinst.orig.xml", Config["profile"]:"", skel_root));
 	}
 	else
 	{
 	    // save the original file (a copy is not available)
-	    commands = add(commands, sformat("/bin/cp %1 %2/autoinst.xml", Config["profile"]:"", skel_root));
+	    Exec(sformat("/bin/cp %1 %2/autoinst.xml", Config["profile"]:"", skel_root));
 	}
     }
 
     // Media nr.
     integer count = 1;
 
-    commands = add(commands, sformat("/bin/echo %1 >> %2/media.1/media ", count,  skel_root));
+    Exec(sformat("/bin/echo %1 >> %2/media.1/media ", count,  skel_root));
 
     // make the source digitally unsigned (because signed descr/packages file has been modified)
     if (Config["code10"]:false)
     {
 	// remove the key and the checksum
-	commands= add(commands, sformat("/bin/rm %1/content.asc %1/content.key", skel_root));
+	Exec(sformat("/bin/rm %1/content.asc %1/content.key", skel_root));
 	// remove the meta information from content file
-	commands= add(commands, sformat("/usr/bin/grep -v -e '^KEY ' -e '^META ' %1/content > %1/content.new", skel_root));
-	commands= add(commands, sformat("/bin/mv %1/content.new %1/content", skel_root));
+	Exec(sformat("/usr/bin/grep -v -e '^KEY ' -e '^META ' %1/content > %1/content.new", skel_root));
+	Exec(sformat("/bin/mv %1/content.new %1/content", skel_root));
 
 	// recreate the index file
-	commands= add(commands, sformat("/bin/rm -f %1/directory.yast; cd %1; ls | grep -v -e '^\\.$' -e '^\\.\\.$' > %1/directory.yast", skel_root));
-
+	Exec(sformat("/bin/rm -f %1/directory.yast; cd %1; ls | grep -v -e '^\\.$' -e '^\\.\\.$' > %1/directory.yast", skel_root));
     }
-
-    y2milestone("all commands: %1", mergestring(commands, "\n"));
-
-    foreach (string c, commands, ``{
-        y2milestone("executing: %1", c);
-	success = success && ((integer)SCR::Execute (.target.bash, c) == 0);
-	y2milestone("success: %1", success);
-    });
 
 
     // remove unused patterns (they cannot be used due to missing packages)
@@ -1028,7 +1105,7 @@ global define boolean  CreateSkeleton () ``{
 	{
 	    used_patterns = prepend(used_patterns, Config["base"]:"");
         }
-	y2internal("used patterns: %1", used_patterns);
+	y2milestone("used patterns: %1", used_patterns);
 
 	list<string> files = (list<string>)SCR::Read(.target.dir, sformat("%1/%2", skel_root, descrDir));
 	if (files == nil)
@@ -1038,10 +1115,10 @@ global define boolean  CreateSkeleton () ``{
 
 	files = filter(string f, files, {return regexpmatch(f, "\\.pat$");});
 
-	y2internal("pattern files: %1", files);
+	y2milestone("found pattern files: %1", files);
 
 	list<string> used_files_regexps = maplist(string p, used_patterns, {return sformat("^%1-.*\\.pat$", p);});
-	y2internal("used_files_regexps: %1", used_files_regexps);
+	y2debug("used_files_regexps: %1", used_files_regexps);
 
 	boolean refresh_diryast = false;
 	foreach(string f, files,
@@ -1471,9 +1548,12 @@ global boolean removeDestination()
 
 global boolean confirmDestinationRemoving()
 {
-    // popup
-
+    // popup question, %1 is directory name
+    if (Popup::YesNo(sformat(_("Remove the destination directory %1?"), Config["iso-directory"]:"" + "/"  + Config["name"]:"")))
+    {
 	// remove the destination
+	return removeDestination();
+    }
 
     return false;
 }
@@ -1509,7 +1589,7 @@ global define string checkPackageAvail() ``{
     list<string> selectedPackages = Pkg::GetPackages (`selected , true);
 
     list<string> failed = [];
-    toCopy = [];
+    toCopy = $[];
     foreach(string package, selectedPackages, ``{
 
 	map package_data = Pkg::PkgProperties(package);
@@ -1520,9 +1600,22 @@ global define string checkPackageAvail() ``{
 	}
 	else
 	{
-	    y2internal("package_data: %1", package_data);
+	    y2debug("package_data: %1", package_data);
 	    string arch =  package_data["arch"]:"noarch";
-	    toCopy = add(toCopy, $["path": package_data["path"]:"", "name": package, "arch":  arch, "srcid":package_data["srcid"]:0, "medianr": package_data["medianr"]:1]);
+	    integer src = package_data["srcid"]:0;
+	    integer medianr = package_data["medianr"]:1;
+
+	    list<map> pkglist = toCopy[src, medianr]:[];
+
+	    pkglist = add(pkglist, $["path": package_data["path"]:"", "name": package, "arch": arch]);
+
+	    // add an empty map if the source doesn't exist
+	    if (!haskey(toCopy, src))
+	    {
+		toCopy[src] = $[];
+	    }
+
+	    toCopy[src, medianr] = pkglist;
 	}
     });
     CDCreator::missing_packages = failed;
@@ -1537,7 +1630,21 @@ global define string checkPackageAvail() ``{
 }
 
 
+global void CallbackSourceReportStart(integer source_id, string url, string task)
+{
+    y2debug("source_id: %1, url: %2, task: %3", source_id, url, task);
+}
 
+global boolean CallbackSourceReportProgress(integer value)
+{
+    y2debug("progress: %1%%", value);
+    return true;
+}
+
+global void CallbackSourceReportEnd(integer numeric_id, string url, string task, string error, string reason)
+{
+    y2debug("source_id: %1, url: %2, task: %3, error: %4, reason: %5", numeric_id, url, task, error, reason);
+}
 
 
 /**
@@ -1554,51 +1661,72 @@ global boolean CopyPackages()
 
     boolean ret = true;
 
-    // TODO: disable source report callbacks
+    // disable source report callbacks - there is a progress dialog
+    Pkg::CallbackSourceReportStart("CDCreator::CallbackSourceReportStart");
+    Pkg::CallbackSourceReportProgress("CDCreator::CallbackSourceReportProgress");
+    Pkg::CallbackSourceReportEnd("CDCreator::CallbackSourceReportEnd");
 
-    // TODO: sort packages by media number!!! important!!
-    foreach(map package, toCopy, ``{
+    y2milestone("Package summary: %1", toCopy);
 
-	Progress::Title(sformat(_("Copying %1"), package["name"]:"..." ));
-	Progress::NextStep();
-	string dir = basedir + "/" + package["arch"]:"";
-
-	if (SCR::Read(.target.dir, dir) == nil )
+    // copy the packages
+    foreach(integer source, map<integer, list<map> > srcmapping, toCopy,
 	{
-            y2milestone("Creating dir: %1", dir);
-	    SCR::Execute(.target.mkdir , dir);
-            y2debug("dir contents: %1", (list)SCR::Read(.target.dir, dir));
+	    foreach(integer medium, list<map> packages, srcmapping,
+		{
+		    y2milestone("Copying packages from source %1, medium %2", source, medium);
+
+		    foreach(map package, packages,
+			{
+			    Progress::Title(sformat(_("Copying %1"), package["name"]:"..." ));
+			    Progress::NextStep();
+			    string dir = basedir + "/" + package["arch"]:"";
+
+			    if (SCR::Read(.target.dir, dir) == nil )
+			    {
+				y2milestone("Creating dir: %1", dir);
+				SCR::Execute(.target.mkdir , dir);
+				y2debug("dir contents: %1", (list)SCR::Read(.target.dir, dir));
+			    }
+
+			    y2milestone("downloading package %1...", package["path"]:"");
+
+			    string l_packge = Pkg::SourceProvideFile(source, medium, package["path"]:"");
+
+			    if (l_packge == nil || l_packge == "")
+			    {
+				Report::Error(sformat(_("Cannot download package %1\n from source %2"), package["path"]:"", source));
+				ret = false;
+				break;
+			    }
+
+			    string cpCmd = sformat("cp -a %1 %2", l_packge, dir );
+
+			    y2debug("%1", cpCmd);
+
+			    any ret = SCR::Execute (.target.bash, cpCmd);
+			    if (ret!=0)
+			    {
+				Popup::Error(_("Error while copying packages. 
+		    Check the created directory for possible hints."));
+				ret = false;
+				break;
+			    }
+			}
+		    );
+		}
+	    );
 	}
+    );
 
-	y2internal("downloading package %1...", package["path"]:"");
-	string l_packge = Pkg::SourceProvideFile(package["srcid"]:0, package["medianr"]:1, package["path"]:"");
-
-	if (l_packge == nil || l_packge == "")
-	{
-	    Report::Error(sformat(_("Cannot download package %1\n from source %2"), package["path"]:"", Pkg::SourceGeneralData(package["srcid"]:0)["url"]:""));
-	    ret = false;
-	    break;
-	}
-
-	string cpCmd = sformat("cp -a %1 %2", l_packge, dir );
-
-	y2debug("%1", cpCmd);
-
-	any ret = SCR::Execute (.target.bash, cpCmd);
-        if (ret!=0)
-        {
-            Popup::Error(_("Error while copying packages. 
-Check the created directory for possible hints."));
-            ret = false;
-	    break;
-        }
-
-    });
     ret = ret && ((integer)SCR::Execute(.target.bash, sformat("cd %1 && " +
                 "/usr/bin/create_package_descr -x setup/descr/EXTRA_PROV",
                 basedir)) == 0);
 
-    // TODO reregister the source report callbacks
+    // restore the source report callbacks
+    Pkg::CallbackSourceReportStart("PackageCallbacks::SourceReportStart");
+    Pkg::CallbackSourceReportProgress("PackageCallbacks::SourceReportProgress");
+    Pkg::CallbackSourceReportEnd("PackageCallbacks::SourceReportEnd");
+
     return ret;
 }
 
