@@ -197,7 +197,7 @@
         Progress::New(
                 _("Creating ISO image directory..."),
                 "",     // progress_title
-                size( progress_stages ) + size(CDCreator::toCopy) + 1,
+                size( progress_stages ) + CDCreator::PackageCount() + 1,
                 progress_stages,
                 progress_descriptions,
                 help );
