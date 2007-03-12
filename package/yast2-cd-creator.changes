@@ -1,7 +1,7 @@
 -------------------------------------------------------------------
 Mon Mar 12 12:09:48 CET 2007 - locilka@suse.cz
 
-- Added missing yast2-storage to RPM dependencies
+- Added missing yast2-storage to RPM dependencies and BuildRequires
 - 2.15.3
 
 -------------------------------------------------------------------
