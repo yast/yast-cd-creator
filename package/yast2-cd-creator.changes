@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Mar 12 12:09:48 CET 2007 - locilka@suse.cz
+
+- Added missing yast2-storage to RPM dependencies
+- 2.15.3
+
+-------------------------------------------------------------------
 Fri Jan 12 09:38:14 CET 2007 - lslezak@suse.cz
 
 - support for all installation sources (added support for remote
