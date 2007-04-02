@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Apr  2 14:54:25 CEST 2007 - lslezak@suse.cz
+
+- register Pkg::CallbackSourceReportInit/Destroy() callbacks -
+  required after fix of bug #251726
+- 2.15.4
+
+-------------------------------------------------------------------
 Mon Mar 12 12:09:48 CET 2007 - locilka@suse.cz
 
 - Added missing yast2-storage to RPM dependencies and BuildRequires
