@@ -457,7 +457,9 @@
         term buttons =
             `HBox(
                     `PushButton(`id(`select), Label::SelectButton() ),
-                    `PushButton(`id(`remove), Label::RemoveButton() )
+                    `PushButton(`id(`remove), Label::RemoveButton() ),
+		    // push button label
+                    `PushButton(`id(`create), _("Cr&eate New..."))
                  );
 
 
@@ -532,6 +534,28 @@
                 selected_items = filter(integer i, selected_items, ``(SrcID!=i ));
                 UI::ChangeWidget(`id(`table), `Item(SrcID, 0) , "");
             }
+	    else if (ret == `create)
+	    {
+		if (Package::Install ("yast2-add-on-creator"))
+		{
+		    symbol createret = (symbol)WFM::CallFunction ("add-on-creator", []);
+		    if (createret == `next)
+		    {
+			map ex = (map)WFM::CallFunction ("add-on-creator_auto", [ "Export" ]);
+			string product_path	= ex["product_path"]:"";
+			if (product_path != "")
+			{
+			    string url = ex["iso"]:false ?  "file://" : "dir://";
+			    if (Pkg::SourceCreate (url + product_path, "") != -1)
+			    {
+				SourceManager::ReadSources();
+				list sources = fillSourceTable([], true , "");
+				UI::ChangeWidget (`id (`table), `Items, sources);// FIXME remember checked
+			    }
+			}
+		    }
+		}
+	    }
             else if(ret == `next)
             {
                 y2milestone("selected items: %1", selected_items);
