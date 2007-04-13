@@ -69,6 +69,9 @@ global string Rep = "/var/lib/YaST2/cd-creator";
 /* Configuration file */
 global string ConfigFile = Rep + "/cdcreator.xml";
 
+// configuration map for Live ISO
+global map<string, any> LiveISOConfig = $[];
+
 /**
  * Abort function
  * return boolean return true if abort
