@@ -549,8 +549,15 @@
 			    if (Pkg::SourceCreate (url + product_path, "") != -1)
 			    {
 				SourceManager::ReadSources();
-				list sources = fillSourceTable([], true , "");
-				UI::ChangeWidget (`id (`table), `Items, sources);// FIXME remember checked
+				list<term> sources = fillSourceTable([], true , "");
+				UI::ChangeWidget (`id (`table), `Items, sources);
+				foreach (term source, sources, {
+				    integer SrcID = source[0,0]:-1;
+				    if (SrcID != -1 && contains (selected_items, SrcID))
+				    {
+					UI::ChangeWidget (`id(`table), `Item(SrcID, 0) , _("X"));
+				    }
+				});
 			    }
 			}
 		    }
