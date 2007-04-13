@@ -18,8 +18,7 @@ import "Sequencer";
 
 include "cd-creator/complex.ycp";
 include "cd-creator/dialogs.ycp";
-
-
+include "cd-creator/kiwi.ycp";
 
 
 /**
@@ -113,6 +112,24 @@ define symbol CreateSequence() ``{
 }
 
 /**
+ */
+define symbol LiveSequence() ``{
+    map aliases = $[
+	"live"	: ``( LiveDialog() )
+    ];
+
+    map sequence = $[
+	"ws_start" : "live",
+	"live": $[
+	    `abort	: `abort,
+	    `next	: `next,
+	]
+
+    ];
+    return Sequencer::Run( aliases, sequence );
+}
+
+/**
  * Main workflow of the cd-creator configuration
  * @return sequence result
  */
@@ -125,7 +142,7 @@ define symbol MainSequence() ``{
 	"add"		: [ ``( AddSequence() ), true ],
 	"edit"		: [ ``( AddSequence() ), true ],
 	"create"	: [ ``( CreateSequence() ), true ],
-
+	"live"		: [ ``( LiveSequence() ), true ],
     ];
 
     map sequence = $[
@@ -135,6 +152,7 @@ define symbol MainSequence() ``{
 	    `add	: "add",
 	    `edit	: "edit",
 	    `create	: "create",
+	    `live	: "live",
 	    `next	: `next
 	],
 	"configure" : $[
@@ -150,6 +168,10 @@ define symbol MainSequence() ``{
 	    `next	: "overview",
 	    ],
 	"create" : $[
+	    `abort	: `abort,
+	    `next	: "overview"
+	],
+	"live" : $[
 	    `abort	: `abort,
 	    `next	: "overview"
 	]
