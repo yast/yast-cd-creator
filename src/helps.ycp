@@ -86,8 +86,7 @@ creating this CD.
 
     /* Configure2 dialog help 1/2 */
     "sourceDialog" : _("<p><b><big>Select Package Sources</big></b><br>
-Select at least one package source. The sources must be local
-to the system. Network sources are not supported.<br></p>
+Select at least one package source.<br></p>
 "),
 
     /* Configure2 dialog help 1/2 */
