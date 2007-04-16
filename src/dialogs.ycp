@@ -39,6 +39,7 @@
 
         // Source data
 	map sd = SourceManager::SourceData(source);
+	y2milestone("SourceManager:: sources: %1", sd);
 	term item = `item();
 
 	map url = URL::Parse(sd["url"]:"");
@@ -50,7 +51,7 @@
 			     "",
 			     // corresponds to the "Enable/Disable" button
 			     sd["enabled"]:true ? _("On") : _("Off"),
-			     sd["label"]:"unknown",
+			     sd["alias"]:"",
 			     sd["url"]:""
 			     );
 	    else
@@ -58,7 +59,7 @@
 			     `id( source ),
 			     // corresponds to the "Enable/Disable" button
 			     sd["enabled"]:true ? _("On") : _("Off"),
-			     sd["label"]:"unknown",
+			     sd["alias"]:"",
 			     sd["url"]:""
 			     );
 	}
@@ -495,10 +496,7 @@
                 integer SrcID = (integer)UI::QueryWidget(`id(`table), `CurrentItem);
 
 		// Check architecture
-		string local_file = Pkg::SourceProvideFile(SrcID, 1, "content");
-		y2debug("local content file: %1", local_file);
-
-		map<string,string> read_content = (map<string,string>)SCR::Read(.content_file, local_file);
+		map<string,string> read_content = CDCreator::ReadContentFile(SrcID);
 		y2milestone("content file: %1", read_content);
 
 		boolean found_architecture = false;
