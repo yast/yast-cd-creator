@@ -254,6 +254,20 @@
         return (symbol)ret;
     }
 
+    // set the packages to 'taboo' state
+    void MarkTaboo(list<string> packages_taboo)
+    {
+	// remove packages (set to taboo)
+	if (packages_taboo != nil && size(packages_taboo) > 0)
+	{
+	    foreach(string p, packages_taboo,
+		{
+		    y2milestone("marking taboo package: %1 -> %2", p, Pkg::PkgTaboo(p));
+		}
+	    );
+	}
+    }
+
     /**
      * Configure2 dialog
      * @return dialog result
@@ -749,6 +763,9 @@
                         });
             }
 
+	    // mark taboo packages
+	    MarkTaboo(CDCreator::Config["taboo"]:[]);
+
             Pkg::PkgSolve(true);
 
             list allpacs = Pkg::GetPackages(`selected, true);
@@ -924,6 +941,9 @@ more <b>add-on</b> selections and packages.
 		    Pkg::ResolvableInstall(addon, `pattern);
 		});
 
+		// mark taboo packages
+		MarkTaboo(CDCreator::Config["taboo"]:[]);
+
 		Pkg::PkgSolve(true);
 
 		// add extra packages
@@ -1033,6 +1053,9 @@ more <b>add-on</b> selections and packages.
 				y2debug("selecting package for installation: %1 -> %2", p, Pkg::PkgInstall(p));
 				});
 		    }
+
+		    // mark taboo packages
+		    MarkTaboo(CDCreator::Config["taboo"]:[]);
 		}
 		else if ( ret == `abort)
 		{
@@ -1048,6 +1071,9 @@ more <b>add-on</b> selections and packages.
 		    foreach(string addon, CDCreator::Config["addons"]:[], ``{
 			    Pkg::SetSelection( addon );
 			    });
+
+		    // mark taboo packages
+		    MarkTaboo(CDCreator::Config["taboo"]:[]);
 
 		    Pkg::PkgSolve(true);
 		    if (size(CDCreator::Config["packages"]:[] ) > 0)
@@ -1113,6 +1139,10 @@ more <b>add-on</b> selections and packages.
 	y2milestone("selected addons: %1", seladd);
         CDCreator::Config["base"] =   selbase[0]:"";
 	y2milestone("selected base: %1", selbase[0]:"");
+
+	// remember taboo packages
+	CDCreator::Config["taboo"] = Pkg::GetPackages(`taboo, true);
+	y2milestone("taboo packages: %1", CDCreator::Config["taboo"]:[]);
 
 	// selections or patterns are used in the product
         CDCreator::Config["type"] = using_patterns ? `patterns : `selections;
