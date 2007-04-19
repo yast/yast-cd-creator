@@ -72,14 +72,9 @@
                 overview, nil, nil, nil, nil );
 
         term contents2 = `VBox(
-            contents,
-	    `HBox (
-		// push button label
-		`PushButton(`id(`create_button), _("&Create ISO Image")),
-		// push button label
-		`PushButton(`id(`live_button), _("Cre&ate Live ISO Image"))
-	    )
-        );
+                contents,
+                `PushButton(`id(`create_button), _("Create ISO Image"))
+                );
 
         contents = Wizard_hw::SpacingAround(contents2, 1.5, 1.5, 1.0, 1.0);
 
@@ -91,7 +86,6 @@
             UI::ChangeWidget(`id(`edit_button), `Enabled, false);
             UI::ChangeWidget(`id(`delete_button), `Enabled, false);
             UI::ChangeWidget(`id(`create_button), `Enabled, false);
-            UI::ChangeWidget(`id(`live_button), `Enabled, false);
         }
 
         any ret = nil;
@@ -128,7 +122,6 @@
                     UI::ChangeWidget(`id(`edit_button), `Enabled, false);
                     UI::ChangeWidget(`id(`delete_button), `Enabled, false);
                     UI::ChangeWidget(`id(`create_button), `Enabled, false);
-                    UI::ChangeWidget(`id(`live_button), `Enabled, false);
                 }
                 import "Progress";
                 Progress::set(false);
@@ -142,14 +135,6 @@
                 CDCreator::Config = CDCreator::Configs[current]:$[];
                 // CDCreator::EnableSource();
                 ret = `create;
-                break;
-            }
-            else if(ret == `live_button &&
-		Package::InstalledAll (["kiwi", "kiwi-desc-isoboot", "kiwi-desc-livesystem"])) {
-                string current = (string) UI::QueryWidget(`id(`table), `CurrentItem );
-                CDCreator::Config = CDCreator::Configs[current]:$[];
-		CDCreator::LiveISOConfig	= CDCreator::Config;
-                ret = `live;
                 break;
             }
             else if (ret == `next || ret == `back) {
