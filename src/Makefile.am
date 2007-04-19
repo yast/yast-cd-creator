@@ -15,8 +15,7 @@ ynclude_DATA =			\
 	wizards.ycp		\
 	dialogs.ycp		\
 	complex.ycp		\
-	routines.ycp		\
-	kiwi.ycp
+	routines.ycp
 
 
 desktop_DATA =			\

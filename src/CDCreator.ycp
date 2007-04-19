@@ -33,13 +33,10 @@ import "GPGWidgets";
 
 
 global define void enableSources();
-global define integer checkProductDependency();
 
 
 list<integer> old_enabled = [];
 
-// content file cache - avoid multiple content file downloading
-map<integer, map<string,string> > content_cache = $[];
 
 global string AYRepository = "";
 
@@ -71,9 +68,6 @@ global string Rep = "/var/lib/YaST2/cd-creator";
 
 /* Configuration file */
 global string ConfigFile = Rep + "/cdcreator.xml";
-
-// configuration map for Live ISO
-global map<string, any> LiveISOConfig = $[];
 
 /**
  * Abort function
@@ -143,18 +137,9 @@ global define list<integer> UrlToId(list<string> urls)
 }
 
 
-global map<string,string> ReadContentFile(integer srcid) {
-    if (haskey(content_cache, srcid))
-    {
-	return content_cache[srcid]:$[];
-    }
+map ReadContentFile(string content) {
 
-    string content = Pkg::SourceProvideFile(srcid, 1, "content");
-    map<string,string> contentmap = (map<string,string>)SCR::Read(.content_file, content);
-
-    content_cache[srcid] = contentmap;
-    y2debug("content_cache: %1", content_cache);
-
+    map contentmap = (map)SCR::Read(.content_file, content);
     return contentmap;
 }
 
@@ -385,7 +370,7 @@ global define string Readisolinux() ``{
     {
 	bootconfig_path = sformat("boot/%1/loader/isolinux.cfg", Arch::architecture());
 
-	list<integer> srcids = [checkProductDependency()];
+	list<integer> srcids = UrlToId([Config["sources", 0]:""]);
 
 	foreach(integer srcid, srcids,
 	    {
@@ -568,13 +553,12 @@ global boolean UpdateMD5File(string directory)
 	    y2error("Cannot remove the old MD5SUMS file");
 	    return false;
 	}
-
-	command = sformat("cd %1 && md5sum * > MD5SUMS", directory);
-	ret = SCR::Execute(.target.bash, command) == 0;
-
-	y2milestone("MD5SUMS updated: %1", ret);
     }
 
+    command = sformat("cd %1 && md5sum * > MD5SUMS", directory);
+    ret = SCR::Execute(.target.bash, command) == 0;
+
+    y2milestone("MD5SUMS updated: %1", ret);
     return ret;
 }
 
@@ -583,15 +567,7 @@ boolean Exec(string command)
 {
     y2milestone("executing: %1", command);
     integer ret = (integer)SCR::Execute (.target.bash, command);
-
-    if (ret == 0)
-    {
-	y2milestone("result: %1", ret);
-    }
-    else
-    {
-	y2error("result: %1", ret);
-    }
+    y2milestone("result: %1", ret);
 
     return ret == 0;
 }
@@ -717,137 +693,6 @@ boolean CopyFilesRegExp(integer srcid, integer mid, string src, string target, s
     return true;
 }
 
-// map additional products to "Addon" directory
-map<integer,string> product_map = $[];
-
-global map<integer,string> CreateProductDirectoryMap(integer base_src)
-{
-    map<integer,string> ret = $[];
-    list<integer> enabled_srcs = Pkg::SourceGetCurrent(true);
-    list known_products = [];
-
-    foreach(integer id, enabled_srcs, ``{
-	    if (id == base_src)
-	    {
-		// this is the base source
-		ret[id] = "/";
-	    }
-	    else
-	    {
-		map productData = Pkg::SourceProductData(id);
-		string prod_name = productData["productname"]:"";
-
-		if (prod_name == nil && prod_name == "")
-		{
-		    prod_name = "add_on";
-		}
-
-		string prod_name_base = prod_name;
-		integer addon_index = 2;
-
-		while(contains(known_products, prod_name))
-		{
-		    prod_name = prod_name_base + sformat("_%1", addon_index);
-		    addon_index = addon_index + 1;
-		}
-
-		known_products = add(known_products, prod_name);
-		ret[id] = "Addons/" + prod_name + "/";
-
-		y2milestone("Using directory '%1' for source %2 (%3)", prod_name, id, productData["productname"]:"");
-	    }
-	}
-    );
-
-    y2milestone("Directory mapping: %1", ret);
-
-    return ret;
-}
-
-
-/**
- * Check Product dependencies and determine product to be used for
- * booting. Also determine what is the main product.
- *
- */
-global define integer checkProductDependency() ``{
-
-    list<integer> sources = UrlToId(Config["sources"]:[]);
-
-    // we have to sort the products according to requires to get the base product
-    string tsort_input = "";
-
-    map<string,integer> provide_map = $[];
-
-    string base_product_name = "";
-
-    foreach(integer id , sources, ``{
-	map content_file = ReadContentFile(id);
-
-	string requires = content_file["REQUIRES"]:"";
-	string provides = content_file["PROVIDES"]:"";
-
-	if (provides == "")
-	{
-	    //provides = sformat("%1-%2", productData["productname"]:"", productData["productversion"]:"" );
-	    provides = sformat("%1-%2", content_file["PRODUCT"]:"", content_file["VERSION"]:"" );
-	}
-
-	string provides_tsort = String::Replace(provides, " ", "_");
-
-	base_product_name = provides;
-
-	tsort_input = tsort_input + provides_tsort + " " +  String::Replace(requires, " ", "_") + "\n";
-	provide_map[provides_tsort] = id;
-    });
-
-    integer base = sources[0]:0;
-
-    if (size(sources) > 1)
-    {
-	y2debug("tsort_input: %1", tsort_input);
-	// run tsort
-	map sorted = (map)SCR::Execute(.target.bash_output, sformat("echo '%1' | tsort | tac", String::Quote(tsort_input)));
-	list<string> sorted_prods = splitstring(sorted["stdout"]:"", "\n");
-
-	// remove requires
-	sorted_prods = filter(string p, sorted_prods, {return haskey(provide_map, p);});
-	y2milestone("Sorted products: %1", sorted_prods);
-
-	base = provide_map[sorted_prods[0]:""]:0;
-    }
-
-    y2milestone("Found base source: id: %1, %2", base, Pkg::SourceGeneralData(base));
-
-    return base;
-}
-
-global string CreateAddonFile(map<integer,string> products)
-{
-    y2milestone("Product map: %1", products);
-
-    string ret = "";
-
-    foreach(integer srcid, string subdir, products,
-	{
-	    if (subdir != nil && subdir != "" && subdir != "/")
-	    {
-		if (size(ret) > 0)
-		{
-		    ret = ret + "\n";
-		}
-
-		ret = ret + subdir;
-	    }
-	}
-    );
-
-    y2milestone("addon_products content: %1", ret);
-
-    return ret;
-}
-
-
 /**
  * Create Skeleton
  * @return boolean true on success
@@ -897,28 +742,10 @@ global define boolean  CreateSkeleton () ``{
 	Exec(sformat("/bin/mkdir -p %1/suseboot", skel_root));
     }
 
-    // detect the base source
-    integer base_source = checkProductDependency();
-    product_map = CreateProductDirectoryMap(base_source);
-
-    // create directories for the addons
-    foreach(integer srcid, string dir, product_map, {
-	    if (dir != "/")
-	    {
-		Exec(sformat("/bin/mkdir -p %1/%2", skel_root, dir));
-	    }
-	}
-    );
-
-    string main_skel_root = skel_root;
-
     foreach(integer id, enabled, ``{
 	map this_source = meta[id]:$[];
 	source   = this_source["path"]:"";
-	meta_local = ReadContentFile(id);
-
-	skel_root = main_skel_root + "/" + product_map[id]:"";
-	y2milestone("Using directory %1 for source %2", skel_root, id);
+	meta_local = ReadContentFile(source + "/content");
 
 	if (source == "")
 	    return false;
@@ -1009,10 +836,7 @@ global define boolean  CreateSkeleton () ``{
 	    y2debug("source data: %1", this_source["sourceData", "url"]:"" );
 	    success = (boolean)SCR::Execute(.target.mkdir, sformat("%1/%2", skel_root, dataDir));
 	    if (!success)
-	    {
-		y2error("Cannot create directory: %1", sformat("%1/%2", skel_root, dataDir));
 		return false;
-	    }
 	 
 	    Exec(sformat("/bin/mkdir -p %1/%2",  skel_root, descrDir));	    
 
@@ -1067,8 +891,7 @@ global define boolean  CreateSkeleton () ``{
 	}
     });
 
-    // set the root directory back
-    skel_root = main_skel_root;
+    integer source_id = enabled[0]:0;;
 
     if (!sp)
     {
@@ -1078,7 +901,7 @@ global define boolean  CreateSkeleton () ``{
 	if (sles_path != "")
 	{
 	    source = sles_path;
-	    base_source = sles_src;
+	    source_id = sles_src;
 	}
 
 	if (descrDir == "")
@@ -1101,14 +924,14 @@ global define boolean  CreateSkeleton () ``{
 	    // Installation, rescue images
 	    if (Config["code10"]:false)
 	    {
-		CopyFile(base_source, 1, sformat("boot/%1/rescue", arch), sformat("%1/boot/%2", skel_root, arch));
-		CopyFile(base_source, 1, sformat("boot/%1/root", arch), sformat("%1/boot/%2", skel_root, arch));
-		CopyFile(base_source, 1, sformat("boot/%1/root.fonts", arch), sformat("%1/boot/%2", skel_root, arch));
+		CopyFile(source_id, 1, sformat("boot/%1/rescue", arch), sformat("%1/boot/%2", skel_root, arch));
+		CopyFile(source_id, 1, sformat("boot/%1/root", arch), sformat("%1/boot/%2", skel_root, arch));
+		CopyFile(source_id, 1, sformat("boot/%1/root.fonts", arch), sformat("%1/boot/%2", skel_root, arch));
 	    }
 	    else
 	    {
-		CopyFile(base_source, 1, "boot/rescue", sformat("%1/boot", skel_root));
-		CopyFile(base_source, 1, "boot/root", sformat("%1/boot", skel_root));
+		CopyFile(source_id, 1, "boot/rescue", sformat("%1/boot", skel_root));
+		CopyFile(source_id, 1, "boot/root", sformat("%1/boot", skel_root));
 	    }
 
 	    // Loader, x86 specific
@@ -1117,36 +940,28 @@ global define boolean  CreateSkeleton () ``{
 		if (Config["code10"]:false)
 		{
 		    // recursive copy of /boot/$arch/loader/*
-		    CopyDirectoryRec(base_source, 1, sformat("boot/%1/loader", arch), sformat("%1/boot/%2", skel_root, arch));
+		    CopyDirectoryRec(source_id, 1, sformat("boot/%1/loader", arch), sformat("%1/boot/%2", skel_root, arch));
 
 		    // nonrecursive copy of /boot/$arch/*
-		    CopyDirectoryNonRec(base_source, 1, sformat("boot/%1", arch), sformat("%1/boot", skel_root));
+		    CopyDirectoryNonRec(source_id, 1, sformat("boot/%1", arch), sformat("%1/boot", skel_root));
 		}
 		else
 		{
 		    // recursive copy of /boot/loader/*
-		    CopyDirectoryRec(base_source, 1, "boot/loader", sformat("%1/boot", skel_root));
+		    CopyDirectoryRec(source_id, 1, "boot/loader", sformat("%1/boot", skel_root));
 		}
 	    }
 	    else
 	    {
 		// recursive copy of /boot/loader/*
-		CopyDirectoryRec(base_source, 1, "boot", skel_root);
+		CopyDirectoryRec(source_id, 1, "boot", skel_root);
 	    }
 	}
 	else
 	{
-	    CopyDirectoryRec(base_source, 1, "/boot", skel_root);
+	    CopyDirectoryRec(source_id, 1, "/boot", skel_root);
 	}
     }
-
-foreach(integer source_id, enabled, ``{
-    map this_source = meta[source_id]:$[];
-    source   = this_source["path"]:"";
-    meta_local = ReadContentFile(source_id);
-
-    skel_root = main_skel_root + "/" + product_map[source_id]:"";
-    y2milestone("Using directory %1 for source %2", skel_root, source_id);
 
     // copy descriptions
     string descrdir = meta[source_id, "productData","descrdir"]:"suse/setup/descr";
@@ -1154,7 +969,7 @@ foreach(integer source_id, enabled, ``{
     CopyDirectoryRec(source_id, 1, descrdir, sformat("%1/%2", skel_root, UpDir(descrdir)));
 
     string datadir  = meta[source_id, "productData", "datadir"]:"suse";
-    string slidedir = datadir + "/setup/slide/";
+    string slidedir = datadir + "/setup/slide";
 
     if (!savespace)
     {
@@ -1324,8 +1139,7 @@ foreach(integer source_id, enabled, ``{
 		    // remove the pattern
 		    string cmd = sformat("/bin/rm %1/%2/%3", skel_root, descrDir, f);
 		    y2milestone("removing pattern %1", f);
-		    success = success && Exec(cmd);
-		    y2debug("success: %1", success);
+		    success = success && ((integer)SCR::Execute (.target.bash, cmd) == 0);
 		    refresh_diryast = true;
 		}
 	    }
@@ -1335,29 +1149,16 @@ foreach(integer source_id, enabled, ``{
 	{
 	    // regenerate directory.yast and patterns file
 	    string cmd = sformat("/bin/rm -f %1/%2/directory.yast; cd %1/%2; ls | grep -v -e '^\\.$' -e '^\\.\\.$' > %1/%2/directory.yast", skel_root, descrDir);
-	    success = success && Exec(cmd);
-	    y2debug("success: %1", success);
+	    success = success && ((integer)SCR::Execute (.target.bash, cmd) == 0);
 
 	    cmd =  sformat("cd %1/%2; ls *.pat > %1/%2/patterns", skel_root, descrDir);
-	    success = success && Exec(cmd);
-	    y2debug("success: %1", success);
+	    success = success && ((integer)SCR::Execute (.target.bash, cmd) == 0);
 	}
     }
 
     // update MD5SUMS file
     success = success && UpdateMD5File(sformat("%1/%2", skel_root, descrDir));
-    y2debug("success: %1", success);
-});
 
-    string addon_file = CreateAddonFile(product_map);
-    if (size(addon_file) > 0)
-    {
-	string target_addon_file = main_skel_root + "/add_on_products";
-	y2milestone("Writing addon products to %1", target_addon_file);
-	success = success && SCR::Write(.target.string, target_addon_file, addon_file);
-    }
-
-    y2debug("success: %1", success);
     return success;
 }
 
@@ -1591,6 +1392,48 @@ global define list<term> GetDirSources(string source) ``{
 }
 
 
+/**
+ * Check Product dependencies and determine product to be used for
+ * booting. Also determine what is the main product.
+ *
+ */
+global define list checkProductDependency() ``{
+
+    list<integer> sources = UrlToId(Config["sources"]:[]);
+
+    list<map> products = maplist(integer id , sources, ``{
+	map generalData = Pkg::SourceGeneralData( id );
+	map productData = Pkg::SourceProductData( id );
+
+	map result = $[];
+
+	result["baseproduct"] = sformat("%1-%2", productData["baseproductname"]:"", productData["baseproductversion"]:"" );
+	result["vendor"] = productData["vendor"]:"";
+	result["product"] = sformat("%1-%2", productData["productname"]:"", productData["productversion"]:"" );
+	result["is_service_pack"] = ( issubstring(productData["productname"]:"", "Service-Pack") );
+	result["id"] = id;
+	return(result);
+    });
+
+    list<map> final = maplist( map product, products, ``{
+	list<map> based_on_this = filter(map p, products, ``(product["product"]:"" == p["baseproduct"]:""));
+	list<integer> ids = maplist(map p, based_on_this, ``(p["id"]:-1));
+	y2milestone("Products based on %1: %2", product["product"]:"", based_on_this );
+	product["dependents"] = ids;
+	return(product);
+    });
+
+
+    map installedProduct = (map)filter(map p, final, ``(size(p["dependents"]:[]) == 0
+								      && !p["is_service_pack"]:false
+								      && issubstring(p["vendor"]:"", "SuSE")))[0]:$[];
+    Config["product"] = installedProduct["product"]:"";
+    y2milestone("all: %1", final);
+    return final;
+
+}
+
+
 global define void enableSources()``{
 
     Pkg::SourceStartManager(false);
@@ -1812,9 +1655,9 @@ global void CallbackSourceReportEnd(integer numeric_id, string url, string task,
  */
 global boolean CopyPackages()
 {
-    // TODO FIXME get datadir from the source
     string datadir  = "suse";
-    string basedir = Config["iso-directory"]:"" + "/" + Config["name"]:"" + "/";
+    string basedir = Config["iso-directory"]:"" + "/" +  Config["name"]:"" +
+        "/" +  datadir;
 
     boolean ret = true;
 
@@ -1836,7 +1679,7 @@ global boolean CopyPackages()
 			{
 			    Progress::Title(sformat(_("Copying %1"), package["name"]:"..." ));
 			    Progress::NextStep();
-			    string dir = basedir + product_map[source]:"/" + datadir + "/" + package["arch"]:"";
+			    string dir = basedir + "/" + package["arch"]:"";
 
 			    if (SCR::Read(.target.dir, dir) == nil )
 			    {
@@ -1856,7 +1699,7 @@ global boolean CopyPackages()
 				break;
 			    }
 
-			    string cpCmd = sformat("mv %1 %2", l_packge, dir );
+			    string cpCmd = sformat("cp -a %1 %2", l_packge, dir );
 
 			    y2debug("%1", cpCmd);
 
@@ -1875,13 +1718,9 @@ global boolean CopyPackages()
 	}
     );
 
-
-    foreach(integer src_ind, string subdir, product_map, {
-	    // TODO FIXME get datadir from the source
-	    ret = ret && Exec(sformat("cd %1/%2/%3 && /usr/bin/create_package_descr -x setup/descr/EXTRA_PROV",
-		basedir, subdir, datadir));
-	}
-    );
+    ret = ret && ((integer)SCR::Execute(.target.bash, sformat("cd %1 && " +
+                "/usr/bin/create_package_descr -x setup/descr/EXTRA_PROV",
+                basedir)) == 0);
 
     // restore the source report callbacks
     Pkg::CallbackSourceReportStart("PackageCallbacks::SourceReportStart");
