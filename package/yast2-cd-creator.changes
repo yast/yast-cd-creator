@@ -1,0 +1,248 @@
+-------------------------------------------------------------------
+Thu Apr 19 15:48:59 CEST 2007 - jsuchome@suse.cz
+
+- run add-on-creator to create new installation sources
+- dialogs for Live ISO configuration (F301945)
+- install inst-source-utils instead of autoyast2-utils
+- 2.13.8.1
+
+-------------------------------------------------------------------
+Thu Apr 19 15:44:34 CEST 2007 - lslezak@suse.cz
+
+- remember and set "taboo" packages
+- don't loose user selected packages when changing software selection
+- added content file cache - download each content file only once
+- detect base product
+- copy addons to Addons subdirectory
+- create "add_on_products" file
+- move downloaded packages (save space, might be faster)
+- fixed help text (network sources can be used as the package repository)
+- display source aliases
+
+-------------------------------------------------------------------
+Fri Jan 12 09:38:14 CET 2007 - lslezak@suse.cz
+
+- support for all installation sources (added support for remote
+  sources and CD/DVD sources), sort the packages by source and
+  medium number, execute the copy commands immediately
+  (the downloaded files are removed when the source is changed)
+  (feature #301124)
+- fix for older (SLES9) sources
+- register package manager callbacks
+- 2.13.8
+
+-------------------------------------------------------------------
+Fri Jan  5 13:29:20 CET 2007 - lslezak@suse.cz
+
+- added the signing step in the progress dialog
+- sign the source - ask for the passphrase, export the public key,
+  update descr/directory.yast, descr/MD5SUMS and content file,
+  include the key in initrd files, do not modify the autoyast
+  profile when the source is signed (feature #301153)
+- display the selected GPG key in the overview dialog
+- minimal command line mode support
+- 2.13.7
+
+-------------------------------------------------------------------
+Wed Dec 13 07:43:06 CET 2006 - lslezak@suse.cz
+
+- display an error message when the selected source doesn't
+  support architecture of the machine (#197549)
+- 2.13.6
+
+-------------------------------------------------------------------
+Wed Aug 23 12:59:44 CEST 2006 - lslezak@suse.cz
+
+- add option 'accept_unsigned_file=true' to a copy of the original
+  autoyast profile, save the copy to the created medium. The copy
+  should be used for autoinstallation. (#199921)
+- 2.13.5
+
+-------------------------------------------------------------------
+Wed Aug  9 13:12:38 CEST 2006 - lslezak@suse.cz
+
+- fixed CD image building when using Autoyast profile as input -
+  properly read software selection from profile and detect
+  CODE10 source (#197549)
+- 2.13.4
+
+-------------------------------------------------------------------
+Thu Jun 15 09:42:29 CEST 2006 - jsuchome@suse.cz
+
+- fixed expected return value from package selector (#184760)
+- 2.13.3 
+
+-------------------------------------------------------------------
+Fri Jun  2 12:32:53 CEST 2006 - lslezak@suse.cz
+
+- make digitally unsigned source on the medium (#179567)
+- remove unused patterns (the packages are missing)
+- copy slideshow
+- 2.13.2
+
+-------------------------------------------------------------------
+Fri May 26 14:35:46 CEST 2006 - lslezak@suse.cz
+
+- create bootable CD (code10 support)
+- don't add the same source multiple times into source list
+- change of a configuration - preselect patterns/packages
+- 2.13.1
+
+-------------------------------------------------------------------
+Thu May 25 15:27:24 CEST 2006 - lslezak@suse.cz
+
+- fixed URL -> sourceID conversion
+- copy all required files from /boot
+- fixed source handling
+
+-------------------------------------------------------------------
+Thu May 25 07:26:22 CEST 2006 - lslezak@suse.cz
+
+- replace tabs by spaces in isolinux.cfg file in ncurses UI
+  (workaround for #142509)
+- support patters (in addition to selections) (#175817)
+- zypp integartion (fixed source handling)
+- use Sequencer:: instead of deprecated wizard/sequencer.ycp
+- detect code10 product (different /boot dir layout)
+
+-------------------------------------------------------------------
+Thu Mar  2 14:39:13 CET 2006 - lslezak@suse.cz
+
+- removed yast2-devel-packages macro from .spec file
+- 2.13.0
+
+-------------------------------------------------------------------
+Tue Nov 29 09:10:03 CET 2005 - visnov@suse.cz
+
+- removed yast2-x11 build dependency
+- 2.12.4 
+
+-------------------------------------------------------------------
+Thu Jul 28 10:59:50 CEST 2005 - lslezak@suse.cz
+
+- updated desktop file
+- 2.12.3
+
+-------------------------------------------------------------------
+Wed Jul 20 12:36:48 CEST 2005 - lslezak@suse.cz
+
+- added missing HFS_mapping file
+- 2.12.2
+
+-------------------------------------------------------------------
+Wed Jul 20 11:49:27 CEST 2005 - arvin@suse.de
+
+- added yast2-storage-lib to neededforbuild
+- 2.12.1
+
+-------------------------------------------------------------------
+Tue May 10 14:40:03 CEST 2005 - lslezak@suse.cz
+
+- copy all available kernels into the CD image (#82776)
+- updated publisher string (#82778)
+- publisher option has been renamed (#82779)
+- PPC support (create bootable CD (#82798), copy required files
+  (#82803), added HFS file mapping (#82802), removed abuild
+  dependent parts (#82800))
+- 2.12.0
+
+-------------------------------------------------------------------
+Thu Feb 10 10:06:56 CET 2005 - visnov@suse.cz
+
+- Merged proofread texts
+
+-------------------------------------------------------------------
+Thu Feb 10 05:50:12 CET 2005 - nashif@suse.de
+
+- Merged back some fixes from SLES9
+
+-------------------------------------------------------------------
+Wed Feb  9 19:05:46 CET 2005 - nashif@suse.de
+
+- Save configuration data into /etc/YaST/cd-creator
+
+-------------------------------------------------------------------
+Tue Aug 31 13:15:49 CEST 2004 - sh@suse.de
+
+- merged proofread messages
+- 2.10.2
+
+-------------------------------------------------------------------
+Tue Aug 31 09:57:40 CEST 2004 - visnov@suse.cz
+
+- adapted for new AutoinstSoftware interface
+- 2.10.1
+
+-------------------------------------------------------------------
+Wed Aug 11 06:06:11 CEST 2004 - nashif@suse.de
+
+- Install required packages on demand
+- Added missing directory in spec file
+
+-------------------------------------------------------------------
+Sat May  8 16:36:00 CEST 2004 - nashif@suse.de
+
+- Use modified isolinux files from the CD
+
+-------------------------------------------------------------------
+Sat May  8 04:42:36 CEST 2004 - nashif@suse.de
+
+- Copy profile to created CD
+- Re-create package database
+
+-------------------------------------------------------------------
+Wed May  5 04:51:45 CEST 2004 - nashif@suse.de
+
+- If no kernel is selected, copy default kernel to CD
+- Fixe support for sources with multiple directories (CD1-5)
+- V. 2.9.10
+
+-------------------------------------------------------------------
+Fri Apr  2 17:32:18 CEST 2004 - nashif@suse.de
+
+- License changed to GPL
+
+-------------------------------------------------------------------
+Thu Apr  1 04:59:50 CEST 2004 - nashif@suse.de
+
+- Copy control.xml in save space mode
+
+-------------------------------------------------------------------
+Mon Mar 29 17:28:14 CEST 2004 - nashif@suse.de
+
+- Added missing files
+
+-------------------------------------------------------------------
+Tue Mar 16 23:41:01 CET 2004 - nashif@suse.de
+
+- Fixed reading autoyast files (#35862)
+- added help text to y2mkiso
+
+-------------------------------------------------------------------
+Wed Mar 10 01:52:15 CET 2004 - nashif@suse.de
+
+- Adapted for new wizard
+
+-------------------------------------------------------------------
+Mon Mar  8 17:16:37 CET 2004 - nashif@suse.de
+
+- Use right textdomain
+- More type fixes
+- 2.9.4
+
+-------------------------------------------------------------------
+Fri Mar  5 16:23:11 CET 2004 - nashif@suse.de
+
+- stricter typing
+- 2.9.3
+
+-------------------------------------------------------------------
+Mon Mar  1 16:17:38 CET 2004 - nashif@suse.de
+
+- Merged proogread texts
+- Some type fixes
+
+-------------------------------------------------------------------
+Sun Jan 11 13:26:39 2004 - nashif@suse.de
+
+- initial version
