@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Apr 19 17:22:48 CEST 2007 - lslezak@suse.cz
+
+- require inst-source-utils package (create_package_descr script)
+  (#265214)
+- 2.13.9
+
+-------------------------------------------------------------------
 Fri Jan 12 09:38:14 CET 2007 - lslezak@suse.cz
 
 - support for all installation sources (added support for remote
