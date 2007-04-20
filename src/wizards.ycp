@@ -188,7 +188,7 @@ define boolean CDCreatorSequence() ``{
 
     Wizard::CreateDialog();
     Wizard::SetDesktopIcon("cd-creator");
-    if (!Package::InstallAll(["autoyast2-utils", "mkisofs"]))
+    if (!Package::InstallAll(["mkisofs"]))
     {
         Popup::Error(_("Installation of required packages
 failed."));
