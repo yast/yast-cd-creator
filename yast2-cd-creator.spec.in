@@ -2,7 +2,7 @@
 
 @HEADER@
 BuildRequires:	perl-XML-Writer update-desktop-files yast2-devtools yast2-testsuite yast2-packager autoyast2-installation
-Requires:	yast2-packager autoyast2-installation inst-source-utils
+Requires:	yast2-packager autoyast2-installation
 
 # GPG.ycp and GPGWidgets.ycp
 Requires:	yast2 >= 2.13.90
