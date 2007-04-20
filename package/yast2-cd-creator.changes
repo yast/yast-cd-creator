@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Fri Apr 20 15:24:25 CEST 2007 - jsuchome@suse.cz
+
+- do not require inst-source-utils, but install it by yast2-cd-creator
+  module the same way autoyast2-utils was before
+- 2.13.11
+
+-------------------------------------------------------------------
 Fri Apr 20 08:53:49 CEST 2007 - jsuchome@suse.cz
 
 - do not install autoyast2-utils (#265214)

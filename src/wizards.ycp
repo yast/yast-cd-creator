@@ -188,7 +188,7 @@ define boolean CDCreatorSequence() ``{
 
     Wizard::CreateDialog();
     Wizard::SetDesktopIcon("cd-creator");
-    if (!Package::InstallAll(["mkisofs"]))
+    if (!Package::InstallAll(["inst-source-utils", "mkisofs"]))
     {
         Popup::Error(_("Installation of required packages
 failed."));
