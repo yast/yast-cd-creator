@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Apr 20 08:53:49 CEST 2007 - jsuchome@suse.cz
+
+- do not install autoyast2-utils (#265214)
+- 2.13.10
+
+-------------------------------------------------------------------
 Thu Apr 19 17:22:48 CEST 2007 - lslezak@suse.cz
 
 - require inst-source-utils package (create_package_descr script)
