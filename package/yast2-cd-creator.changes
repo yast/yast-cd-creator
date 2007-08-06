@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Thu Jul 26 08:22:32 CEST 2007 - lslezak@suse.cz
+
+- always store isolinux.cfg into the config file, even if there
+  is no change, fixed the default boot item in isolinux.cfg for
+  AutoYast installation (#260246)
+- use the correct architecture when copying packages to the target
+  directory (#292681)
+- 2.13.12
+
+-------------------------------------------------------------------
 Fri Apr 20 15:24:25 CEST 2007 - jsuchome@suse.cz
 
 - do not require inst-source-utils, but install it by yast2-cd-creator

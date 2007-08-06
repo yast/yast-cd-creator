@@ -609,11 +609,8 @@
             }
             else if(ret == `next) {
                 string isolinux_new = (string)UI::QueryWidget(`id(`isolinux), `Value);
-                if (isolinux_new != isolinux)
-                {
-                    CDCreator::Config["bootconfig"] = isolinux_new;
-                }
-
+                CDCreator::Config["bootconfig"] = isolinux_new;
+		y2milestone("Isolinux config: %1", isolinux_new);
 
                 break;
             }
