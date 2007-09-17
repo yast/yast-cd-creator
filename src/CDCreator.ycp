@@ -368,7 +368,10 @@ global define string Readisolinux() ``{
     }
     else
     {
-	bootconfig_path = sformat("boot/%1/loader/isolinux.cfg", Arch::architecture());
+	string arch = Arch::architecture();
+	if (arch == "s390_64") arch = "s390x";
+
+	bootconfig_path = sformat("boot/%1/loader/isolinux.cfg", arch);
 
 	list<integer> srcids = UrlToId([Config["sources", 0]:""]);
 
@@ -707,6 +710,7 @@ global define boolean  CreateSkeleton () ``{
     integer sles_src = 0;
     string descr_dir = "";
     string arch = Arch::architecture();
+    if (arch == "s390_64") arch = "s390x";
 
     y2milestone("Config: %1", Config);
 
@@ -1306,6 +1310,7 @@ global define boolean CopyMiscFiles() ``{
 
     string cpCmd = "";
     string arch = Arch::architecture();
+    if (arch == "s390_64") arch = "s390x";
     y2debug("isolinux.cfg: %1", Config["bootconfig"]:"" );
     if (Config["bootconfig"]:"" != "") 
     {
