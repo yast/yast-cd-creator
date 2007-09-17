@@ -500,9 +500,11 @@
 		y2milestone("content file: %1", read_content);
 
 		boolean found_architecture = false;
+		string arch = Arch::architecture ();
+		if (arch == "s390_64") arch = "s390x";
 		foreach(string key, string value, read_content,
 		    {
-			if (key == "ARCH." + Arch::architecture())
+			if (key == "ARCH." + arch);
 			{
 			    found_architecture = true;
 			    break;
@@ -523,7 +525,7 @@
 		}
 		else
 		{
-		    Report::Error(sformat(_("The source does not support architecture of this machine (%1).\nSelect another source."), Arch::architecture()));
+		    Report::Error(sformat(_("The source does not support architecture of this machine (%1).\nSelect another source."), arch));
 		}
             }
             else if (ret == `remove)
@@ -630,6 +632,9 @@
 
     define void CheckCode10Source()
     {
+	string arch = Arch::architecture ();
+	if (arch == "s390_64") arch = "s390x";
+
 	boolean code10 = false;
 	foreach (string url , CDCreator::Config["sources"]:[],
 	{
@@ -647,7 +652,7 @@
 		{
 		    list<string> items = splitstring(dir_listing, "\n");
 
-		    code10 = code10 || contains(items, Arch::architecture() + "/");
+		    code10 = code10 || contains(items, arch + "/");
 		}
 	    }
         });
