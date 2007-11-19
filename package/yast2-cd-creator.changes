@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Nov 19 17:21:49 CET 2007 - locilka@suse.cz
+
+- Unified used terminology (repositories) (FATE #302970).
+
+-------------------------------------------------------------------
 Mon Apr  2 14:54:25 CEST 2007 - lslezak@suse.cz
 
 - register Pkg::CallbackSourceReportInit/Destroy() callbacks -
