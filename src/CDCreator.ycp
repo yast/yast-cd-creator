@@ -1271,7 +1271,9 @@ global boolean SignSourceStep()
 	    signed = SignSourceFiles(gpg_key, skel_root, passphrase);
 
 	    // yes/no popup: error message
-	    if (!signed && !Popup::YesNo(_("Error: Could not digitally sign the source.\nTry it again?")))
+	    if (!signed && !Popup::YesNo(_("Error: Could not digitally sign the source.
+Try again?
+")))
 	    {
 		break;
 	    }

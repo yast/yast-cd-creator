@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Jan 17 13:01:19 CET 2008 - jsrain@suse.cz
+
+- merged texts from proofread
+
+-------------------------------------------------------------------
 Fri Apr 20 15:24:25 CEST 2007 - jsuchome@suse.cz
 
 - do not require inst-source-utils, but install it by yast2-cd-creator
