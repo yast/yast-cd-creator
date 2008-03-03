@@ -2,6 +2,22 @@
 Thu Jan 17 13:01:19 CET 2008 - jsrain@suse.cz
 
 - merged texts from proofread
+- 2.13.14
+
+-------------------------------------------------------------------
+Mon Sep 17 20:51:40 CEST 2007 - jsuchome@suse.cz
+
+- support s390x architecture (#301362)
+- 2.13.13 
+
+-------------------------------------------------------------------
+Thu Jul 26 08:22:32 CEST 2007 - lslezak@suse.cz
+
+- always store isolinux.cfg into the config file, even if there
+  is no change, fixed the default boot item in isolinux.cfg for
+  AutoYast installation (#260246)
+- use the correct architecture when copying packages to the target
+  directory (#292681)
 - 2.13.12
 
 -------------------------------------------------------------------
