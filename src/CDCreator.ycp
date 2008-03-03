@@ -368,7 +368,10 @@ global define string Readisolinux() ``{
     }
     else
     {
-	bootconfig_path = sformat("boot/%1/loader/isolinux.cfg", Arch::architecture());
+	string arch = Arch::architecture();
+	if (arch == "s390_64") arch = "s390x";
+
+	bootconfig_path = sformat("boot/%1/loader/isolinux.cfg", arch);
 
 	list<integer> srcids = UrlToId([Config["sources", 0]:""]);
 
@@ -707,6 +710,7 @@ global define boolean  CreateSkeleton () ``{
     integer sles_src = 0;
     string descr_dir = "";
     string arch = Arch::architecture();
+    if (arch == "s390_64") arch = "s390x";
 
     y2milestone("Config: %1", Config);
 
@@ -1308,6 +1312,7 @@ global define boolean CopyMiscFiles() ``{
 
     string cpCmd = "";
     string arch = Arch::architecture();
+    if (arch == "s390_64") arch = "s390x";
     y2debug("isolinux.cfg: %1", Config["bootconfig"]:"" );
     if (Config["bootconfig"]:"" != "") 
     {
@@ -1318,11 +1323,6 @@ global define boolean CopyMiscFiles() ``{
 	    : sformat("%1/boot/loader/isolinux.cfg", skel_root);
 
         SCR::Write(.target.string, fname, Config["bootconfig"]:"" );
-        /*
-        string cpCmd = sformat("cp %1/cd-creator/isolinux.cfg %2/boot/loader",
-            Directory::datadir, skel_root);
-        SCR::Execute (.target.bash, cpCmd);
-            */
     }
     cpCmd = (Config["code10"]:false)
 	? sformat("cp %1/cd-creator/message %2/boot/%3/loader", Directory::datadir, skel_root, arch)
@@ -1589,12 +1589,24 @@ global define string checkPackageAvail() ``{
     Progress::Title(_("Checking for package availability..."));
 
     list<string> selectedPackages = Pkg::GetPackages (`selected , true);
+    y2milestone("Selected %1 packages: %2", size(selectedPackages), sort(selectedPackages));
 
     list<string> failed = [];
     toCopy = $[];
     foreach(string package, selectedPackages, ``{
 
-	map package_data = Pkg::PkgProperties(package);
+	list<map> package_data_list = Pkg::PkgPropertiesAll(package);
+	map package_data = nil;
+
+	// get the selected package
+	foreach(map pkg_data, package_data_list,
+	    {
+		if (pkg_data["status"]:`unknown == `selected)
+		{
+		    package_data = pkg_data;
+		}
+	    }
+	);
 
 	if (package_data == nil || package_data == $[])
 	{
