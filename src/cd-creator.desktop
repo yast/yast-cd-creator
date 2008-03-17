@@ -21,3 +21,4 @@ Exec=/sbin/yast2 cd-creator
 Name=CD Creator
 GenericName=Create installation CDs
 X-KDE-SubstituteUID=true
+StartupNotify=true
