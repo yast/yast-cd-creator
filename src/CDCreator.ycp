@@ -696,6 +696,24 @@ boolean CopyFilesRegExp(integer srcid, integer mid, string src, string target, s
     return true;
 }
 
+void RegisterCallbacks()
+{
+    Pkg::CallbackSourceReportStart("CDCreator::CallbackSourceReportStart");
+    Pkg::CallbackSourceReportProgress("CDCreator::CallbackSourceReportProgress");
+    Pkg::CallbackSourceReportEnd("CDCreator::CallbackSourceReportEnd");
+    Pkg::CallbackSourceReportInit("CDCreator::CallbackSourceReportInit");
+    Pkg::CallbackSourceReportDestroy("CDCreator::CallbackSourceReportDestroy");
+}
+
+void UnregisterCallbacks()
+{
+    Pkg::CallbackSourceReportStart("PackageCallbacks::SourceReportStart");
+    Pkg::CallbackSourceReportProgress("PackageCallbacks::SourceReportProgress");
+    Pkg::CallbackSourceReportEnd("PackageCallbacks::SourceReportEnd");
+    Pkg::CallbackSourceReportInit("PackageCallbacks::SourceReportInit");
+    Pkg::CallbackSourceReportDestroy("PackageCallbacks::SourceReportDestroy");
+}
+
 /**
  * Create Skeleton
  * @return boolean true on success
@@ -728,6 +746,8 @@ global define boolean  CreateSkeleton () ``{
     string descrDir = "";
     string dataDir = "";
 
+    RegisterCallbacks();
+
     if (Arch::i386() || Arch::x86_64())
     {
 	if (Config["code10"]:false)
@@ -752,7 +772,10 @@ global define boolean  CreateSkeleton () ``{
 	meta_local = ReadContentFile(source + "/content");
 
 	if (source == "")
+	{
+	    UnregisterCallbacks();
 	    return false;
+	}
 
 	y2milestone("source: %1", source);
 	descr_dir = this_source["productData","descrdir"]:"suse/setup/descr";
@@ -840,7 +863,10 @@ global define boolean  CreateSkeleton () ``{
 	    y2debug("source data: %1", this_source["sourceData", "url"]:"" );
 	    success = (boolean)SCR::Execute(.target.mkdir, sformat("%1/%2", skel_root, dataDir));
 	    if (!success)
+	    {
+		UnregisterCallbacks();
 		return false;
+	    }
 	 
 	    Exec(sformat("/bin/mkdir -p %1/%2",  skel_root, descrDir));	    
 
@@ -1162,6 +1188,8 @@ global define boolean  CreateSkeleton () ``{
 
     // update MD5SUMS file
     success = success && UpdateMD5File(sformat("%1/%2", skel_root, descrDir));
+
+    UnregisterCallbacks();
 
     return success;
 }
@@ -1660,6 +1688,15 @@ global void CallbackSourceReportEnd(integer numeric_id, string url, string task,
     y2debug("source_id: %1, url: %2, task: %3, error: %4, reason: %5", numeric_id, url, task, error, reason);
 }
 
+global void CallbackSourceReportInit()
+{
+    y2debug("CDCreator::CallbackSourceReportInit()");
+}
+
+global void CallbackSourceReportDestroy()
+{
+    y2debug("CDCreator::CallbackSourceReportDestroy()");
+}
 
 /**
  * CopyPackages()
@@ -1676,9 +1713,7 @@ global boolean CopyPackages()
     boolean ret = true;
 
     // disable source report callbacks - there is a progress dialog
-    Pkg::CallbackSourceReportStart("CDCreator::CallbackSourceReportStart");
-    Pkg::CallbackSourceReportProgress("CDCreator::CallbackSourceReportProgress");
-    Pkg::CallbackSourceReportEnd("CDCreator::CallbackSourceReportEnd");
+    RegisterCallbacks();
 
     y2milestone("Package summary: %1", toCopy);
 
@@ -1737,9 +1772,7 @@ global boolean CopyPackages()
                 basedir)) == 0);
 
     // restore the source report callbacks
-    Pkg::CallbackSourceReportStart("PackageCallbacks::SourceReportStart");
-    Pkg::CallbackSourceReportProgress("PackageCallbacks::SourceReportProgress");
-    Pkg::CallbackSourceReportEnd("PackageCallbacks::SourceReportEnd");
+    UnregisterCallbacks();
 
     return ret;
 }
