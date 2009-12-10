@@ -8,6 +8,9 @@ Requires:	yast2-packager autoyast2-installation
 Requires:	yast2 >= 2.13.90
 BuildRequires: 	yast2 >= 2.13.90
 
+# Pkg::CallbackSourceCreateInit/Destroy()
+Requires:	yast2-pkg-bindings >= 2.13.125
+
 BuildArchitectures:	noarch
 
 Summary:	Configuration of CD-creator
