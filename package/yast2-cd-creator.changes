@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Thu Jan 14 07:34:27 CET 2010 - jsuchome@suse.cz
+
+- correctly copy PPC files for bootable medias (bnc#561751)
+- do not copy /etc, /PS3 directories
+- do not write TRANS.TBL checksum into content file
+- 2.13.17
+
+-------------------------------------------------------------------
 Wed Apr 22 17:00:35 CEST 2009 - lslezak@suse.cz
 
 - register Pkg::CallbackSourceReportInit/Destroy() callbacks -
