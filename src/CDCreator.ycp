@@ -471,7 +471,7 @@ string SHA1Meta(string dir, string product_dir)
 {
     // generate new sha1 sums for files in descr subdirectory
     // remove './' from the file names, ignore directory.yast file, sort the output
-    string command = sformat("(cd '%1/%2' && find . -type f -exec sha1sum \\{\\} \\; | sed -e 's#^\\(.\\{40\\}\\)  ./#META SHA1 \\1  #' | grep -v '^.\\{40\\}  directory.yast$' | LC_ALL=C sort -k 2)", String::Quote(dir), String::Quote(product_dir));
+    string command = sformat("(cd '%1/%2' && find . -type f -exec sha1sum \\{\\} \\; | sed -e 's#^\\(.\\{40\\}\\)  ./#META SHA1 \\1  #' | grep -Ev '(  directory.yast$|  TRANS.TBL$)' | LC_ALL=C sort -k 2)", String::Quote(dir), String::Quote(product_dir));
 
     y2milestone("Generating SHA1 sums: %1", command);
 
@@ -600,7 +600,7 @@ boolean CopyOptionalFile(integer srcid, integer mid, string src, string target)
     return true;
 }
 
-boolean CopyDirectoryRec(integer srcid, integer mid, string src, string target)
+boolean CopyDirectoryR(integer srcid, integer mid, string src, string target, boolean optional)
 {
     y2milestone("CopyDirectoryRec: srcid: %1, mid: %2, src: %3, target: %4", srcid, mid, src, target);
 
@@ -609,13 +609,28 @@ boolean CopyDirectoryRec(integer srcid, integer mid, string src, string target)
 
     if (local_dir == nil || local_dir == "")
     {
-	// an error message, %1 is the directory, %2 is URL of the source
-	Report::Error(sformat(_("Cannot read directory %1\nfrom source %2."), src, Pkg::SourceGeneralData(srcid)["url"]:""));
+	if (!optional)
+	{
+	    // an error message, %1 is the directory, %2 is URL of the source
+	    Report::Error(sformat(_("Cannot read directory %1\nfrom source %2."), src, Pkg::SourceGeneralData(srcid)["url"]:""));
+	}
+
 	return false;
     }
 
     return Exec(sformat("/bin/cp -a -f -- '%1' '%2'", String::Quote(local_dir), String::Quote(target)));
 }
+
+boolean CopyDirectoryRec(integer srcid, integer mid, string src, string target)
+{
+    return CopyDirectoryR(srcid, mid, src, target, false);
+}
+
+boolean CopyDirectoryRecOpt(integer srcid, integer mid, string src, string target)
+{
+    return CopyDirectoryR(srcid, mid, src, target, true);
+}
+
 
 boolean CopyDirectoryNonRec(integer srcid, integer mid, string src, string target)
 {
@@ -647,9 +662,44 @@ boolean CopyDirectoryNonRec(integer srcid, integer mid, string src, string targe
 
 boolean CopyPPCBoot(integer srcid, string target)
 {
-    return CopyDirectoryRec(srcid, 1, "/ppc", target)
-        && CopyDirectoryRec(srcid, 1, "/etc", target)
-	&& CopyDirectoryRec(srcid, 1, "/suseboot", target);
+    y2milestone("Copying PPC boot files");
+    boolean ret = true;
+
+    y2milestone("Copying /ppc subdirectory");
+    boolean r = CopyDirectoryRecOpt(srcid, 1, "/ppc", target);
+
+    if (!r)
+    {
+	y2milestone("Directory listing may be missing, copying /ppc/bootinfo.txt");
+	CopyFile(srcid, 1, "/ppc/bootinfo.txt", target + "/ppc");
+    }
+
+    ret = ret && r;
+
+    y2milestone("Copying /suseboot subdirectory");
+    r = CopyDirectoryRecOpt(srcid, 1, "/suseboot", target);
+    y2milestone("Result: %1", r);
+
+    if (!r)
+    {
+	list<string> files = [
+	    "/suseboot/inst32", "/suseboot/inst64", "/suseboot/os-chooser",
+	    "/suseboot/yaboot", "/suseboot/yaboot.cnf", "/suseboot/yaboot.ibm",
+	    "/suseboot/yaboot.txt"
+	];
+
+	y2milestone("Directory listing may be missing using fixed list: %1", files);
+
+	foreach(string f, files,
+	    {
+		CopyOptionalFile(srcid, 1, f, target + f);
+	    }
+	);
+    }
+
+    ret = ret && r;
+
+    return ret;
 }
 
 string UpDir(string input)
@@ -761,7 +811,6 @@ global define boolean  CreateSkeleton () ``{
     }
     else if (Arch::ppc() || Arch::ppc64())
     {
-	Exec(sformat("/bin/mkdir -p %1/etc", skel_root));
 	Exec(sformat("/bin/mkdir -p %1/ppc", skel_root));
 	Exec(sformat("/bin/mkdir -p %1/suseboot", skel_root));
     }
@@ -981,6 +1030,13 @@ global define boolean  CreateSkeleton () ``{
 		    CopyDirectoryRec(source_id, 1, "boot/loader", sformat("%1/boot", skel_root));
 		}
 	    }
+	    else if (Arch::ppc() || Arch::ppc64())
+	    {
+		CopyPPCBoot(source_id, skel_root);
+
+		// recursive copy of /boot
+		CopyDirectoryRec(source_id, 1, "boot", skel_root);
+	    }
 	    else
 	    {
 		// recursive copy of /boot/loader/*
@@ -990,6 +1046,10 @@ global define boolean  CreateSkeleton () ``{
 	else
 	{
 	    CopyDirectoryRec(source_id, 1, "/boot", skel_root);
+	    if (Arch::ppc() || Arch::ppc64())
+	    {
+		CopyPPCBoot(source_id, skel_root);
+	    }
 	}
     }
 
